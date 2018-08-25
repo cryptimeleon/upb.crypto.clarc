@@ -23,7 +23,6 @@ import de.upb.crypto.math.interfaces.hash.HashIntoStructure;
 import de.upb.crypto.math.interfaces.mappings.BilinearMap;
 import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
-import de.upb.crypto.math.pairings.bn.BarretoNaehrigNativeProvider;
 import de.upb.crypto.math.pairings.bn.BarretoNaehrigProvider;
 import de.upb.crypto.math.pairings.mcl.MclBilinearGroupProvider;
 import de.upb.crypto.math.structures.zn.HashIntoZp;
@@ -136,7 +135,7 @@ public class PublicParametersFactory implements de.upb.crypto.clarc.acs.PublicPa
         groupFactory.setLazyGroups(lazygroups);
         groupFactory.registerProvider(Arrays.asList(
                 new MclBilinearGroupProvider(),
-                new BarretoNaehrigNativeProvider(),
+                // new BarretoNaehrigNativeProvider(), //not yet publicly available
                 new BarretoNaehrigProvider()));
 
         BilinearGroup factory = groupFactory.createBilinearGroup();
