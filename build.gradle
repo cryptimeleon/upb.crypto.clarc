@@ -1,0 +1,84 @@
+plugins {
+    // Apply the java-library plugin to add support for Java Library
+    id 'java-library'
+    id 'maven'
+    id 'maven-publish'
+}
+
+group = 'de.upb.crypto.clarc'
+version = '1.0.0-SNAPSHOT'
+
+description = """"""
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+    mavenLocal()
+    maven { url "https://nexus.cs.upb.de/repository/sfb901-libs/" }
+    maven { url "https://nexus.cs.upb.de/repository/sfb901-snapshots/" }
+}
+
+dependencies {
+    // This dependency is exported to consumers, that is to say found on their compile classpath.
+    api 'org.apache.commons:commons-math3:3.6.1'
+
+    api group: 'de.upb.crypto', name: 'math', version: '1.0.0-SNAPSHOT'
+    api group: 'de.upb.crypto', name: 'mclwrap', version: '0.0.1-SNAPSHOT'
+    api group: 'de.upb.crypto', name: 'bnnative', version: '0.0.1-SNAPSHOT'
+    api group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0-SNAPSHOT'
+    api group: 'de.upb.crypto.clarc', name: 'predicate-protocols', version: '1.0.0-SNAPSHOT'
+
+    // This dependency is used internally, and not exposed to consumers on their own compile classpath.
+    implementation 'com.google.guava:guava:23.0'
+    implementation group: 'com.google.code.findbugs', name: 'annotations', version: '2.0.1'
+    implementation group: 'log4j', name: 'log4j', version: '1.2.12'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+
+    // For tests
+    testImplementation group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0-SNAPSHOT', classifier: 'tests'
+    testImplementation 'org.easymock:easymock:3.5'
+    // Use JUnit 5 test framework
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.2.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.2.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.1.0'
+}
+
+
+test {
+    useJUnitPlatform()
+    maxParallelForks 4
+    //we want display the following test events
+    testLogging {
+        events "PASSED", "STARTED", "FAILED", "SKIPPED"
+    }
+    afterSuite { desc, result ->
+        if (!desc.parent) { // will match the outermost suite
+            def output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+            def startItem = '|  ', endItem = '  |'
+            def repeatLength = startItem.length() + output.length() + endItem.length()
+            println('\n' + ('-' * repeatLength) + '\n' + startItem + output + endItem + '\n' + ('-' * repeatLength))
+        }
+    }
+}
+
+
+//packaging tests
+task packageTests(type: Jar) {
+    classifier = 'tests'
+    baseName = project.name + '-test'
+    from sourceSets.test.output+sourceSets.test.allSource
+}
+
+configurations {
+    testArtifacts
+}
+artifacts {
+    archives packageTests
+}
