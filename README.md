@@ -8,7 +8,7 @@ This upper layer in the architecture utilize lower-level libraries.
 While the intended interface for applications consuming the library is CLARC, the other libraries can still be used in order to either, achieve greater control about the internals of the credential system, or also to reuse parts for completely credential system unrelated use-cases. For example, the commitment or signature schemes can be reused in a different context with this architecture.
 
 ## Further reading
-Please see the workshop paper ["Fully-Featured Anonymous Credentials with Reputation System"](https://dl.acm.org/citation.cfm?id=3234517) (ARES 2018) and [the project group document](https://cs.uni-paderborn.de/fileadmin/informatik/fg/cuk/Lehre/Veranstaltungen/WS2016/ReACt/ReACt_documentation.pdf).
+Please see the workshop paper ["Fully-Featured Anonymous Credentials with Reputation System"](https://eprint.iacr.org/2018/835.pdf) (ARES 2018) and [the project group document](https://cs.uni-paderborn.de/fileadmin/informatik/fg/cuk/Lehre/Veranstaltungen/WS2016/ReACt/ReACt_documentation.pdf).
 
 ## Notes
 CLARC was created within a project group called "Re(AC)^t" at Paderborn University in the working group ["Codes und Cryptography"](https://cs.uni-paderborn.de/en/cuk/research/).
