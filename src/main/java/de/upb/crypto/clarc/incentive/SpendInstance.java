@@ -41,9 +41,10 @@ public class SpendInstance {
 	PSSignature randToken;
 	PedersenCommitmentPair commitmentOnValue;
 
-	SigmaProtocol protocol;
+	SigmaProtocol schnorrProtocol;
+	SigmaProtocol rangeProtocol;
 
-	public SpendInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, GroupElement dsid, Zp.ZpElement usk, IncentiveToken token, Zp.ZpElement gamma, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, GroupElement dsidStar, PedersenCommitmentValue commitment, Zp.ZpElement rC, Zp.ZpElement c, ElgamalCipherText ctrace, Zp.ZpElement rPrime, PSSignature randToken, PedersenCommitmentPair commitmentOnValue, SigmaProtocol protocol) {
+	public SpendInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, GroupElement dsid, Zp.ZpElement usk, IncentiveToken token, Zp.ZpElement gamma, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, GroupElement dsidStar, PedersenCommitmentValue commitment, Zp.ZpElement rC, Zp.ZpElement c, ElgamalCipherText ctrace, Zp.ZpElement rPrime, PSSignature randToken, PedersenCommitmentPair commitmentOnValue, SigmaProtocol schnorrProtocol, SigmaProtocol rangeProtocol) {
 		this.pp = pp;
 		this.pk = pk;
 		this.k = k;
@@ -61,15 +62,24 @@ public class SpendInstance {
 		this.rPrime = rPrime;
 		this.randToken = randToken;
 		this.commitmentOnValue = commitmentOnValue;
-		this.protocol = protocol;
+		this.schnorrProtocol = schnorrProtocol;
+		this.rangeProtocol = rangeProtocol;
 	}
 
-	public Announcement[] generateAnnoucements() {
-		return protocol.generateAnnouncements();
+	public Announcement[] generateSchnorrAnnoucements() {
+		return schnorrProtocol.generateAnnouncements();
 	}
 
-	public Response[] generateResponses(Challenge ch) {
-		return protocol.generateResponses(ch);
+	public Response[] generateSchnorrResponses(Challenge ch) {
+		return schnorrProtocol.generateResponses(ch);
+	}
+
+	public Announcement[] generateRangeAnnoucements() {
+		return rangeProtocol.generateAnnouncements();
+	}
+
+	public Response[] generateRangeResponses(Challenge ch) {
+		return rangeProtocol.generateResponses(ch);
 	}
 
 	public TokenDoubleSpendIdPair spend(PSSignature blindedSig) {

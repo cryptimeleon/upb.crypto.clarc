@@ -1,5 +1,6 @@
 package de.upb.crypto.clarc.incentive;
 
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocol;
 import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentPair;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentScheme;
@@ -112,13 +113,26 @@ public class User {
 
 		// commitment on value v for range proof using randomness rV
 		// C = g^{y_1 * v} * g^{rV} for rV in open value
-		PedersenCommitmentScheme pedersen2 = new PedersenCommitmentScheme(new PedersenPublicParameters(pk.getGroup1ElementG(), new GroupElement[] {pk.getGroup1ElementsYi()[0]}, pp.group.getG1()));
+		PedersenPublicParameters pedersenPP2 = new PedersenPublicParameters(
+				pk.getGroup1ElementG(),
+				new GroupElement[]{pk.getGroup1ElementsYi()[0]},
+				g1
+		);
+		PedersenCommitmentScheme pedersen2 = new PedersenCommitmentScheme(pedersenPP2);
 		// need the whole pair for range proof constructor
 		PedersenCommitmentPair commitmentTokenValue = pedersen2.commit(new RingElementPlainText(token.value));
 
 		// protocol
-		SigmaProtocol protocol = ZKAKProvider.getSpendDeductProverProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentTokenValue, usk, token.dsrnd, dldsidStar, dsrndStar, r, rC, rPrime, token.value);
+		SigmaProtocol protocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(
+										this.pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentTokenValue,
+										usk, token.dldsid, token.dsrnd, dldsidStar, dsrndStar, r, rC, rPrime,
+										token.value
+								);
 
-		return new SpendInstance(pp, pk, k, dsid, usk, token, gamma, dldsidStar, dsrndStar, dsidStar, commitment, rC, c, ctrace, rPrime, randToken, commitmentTokenValue, protocol);
+		ArbitraryRangeProofProtocol rangeProtocol = ZKAKProvider.getSpendDeductRangeProverProtocol(
+														this.pp, pk, k, commitmentTokenValue, token.value
+													);
+
+		return new SpendInstance(this.pp, pk, k, dsid, usk, token, gamma, dldsidStar, dsrndStar, dsidStar, commitment, rC, c, ctrace, rPrime, randToken, commitmentTokenValue, protocol, rangeProtocol);
 	}
 }

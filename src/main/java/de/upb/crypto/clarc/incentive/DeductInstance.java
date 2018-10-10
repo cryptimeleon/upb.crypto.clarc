@@ -1,6 +1,11 @@
 package de.upb.crypto.clarc.incentive;
 
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocol;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocolFactory;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofPublicParameters;
 import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
+import de.upb.crypto.clarc.protocols.generalizedschnorrprotocol.GeneralizedSchnorrAnnouncement;
+import de.upb.crypto.clarc.protocols.generalizedschnorrprotocol.GeneralizedSchnorrProtocol;
 import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.clarc.protocols.parameters.Challenge;
 import de.upb.crypto.clarc.protocols.parameters.Response;
@@ -9,9 +14,7 @@ import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
 import de.upb.crypto.craco.sig.ps.PSExtendedVerificationKey;
 import de.upb.crypto.craco.sig.ps.PSSignature;
 import de.upb.crypto.craco.sig.ps.PSSigningKey;
-import de.upb.crypto.math.interfaces.mappings.PairingProductExpression;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
-import de.upb.crypto.math.interfaces.structures.PowProductExpression;
 import de.upb.crypto.math.structures.zn.Zp;
 
 public class DeductInstance {
@@ -29,9 +32,12 @@ public class DeductInstance {
 	ElgamalCipherText ctrace;
 	PSSignature randToken;
 
-	SigmaProtocol protocol;
-	Announcement[] announcements;
-	Challenge ch;
+	SigmaProtocol schnorrProtocol;
+	Announcement[] schnorrAnnouncements;
+	Challenge schnorrChallenge;
+	SigmaProtocol rangeProtocol;
+	Announcement[] rangeAnnouncements;
+	Challenge rangeChallenge;
 
 	public DeductInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PSSigningKey sk, Zp.ZpElement k, GroupElement dsid, Zp.ZpElement gamma) {
 		this.pp = pp;
@@ -42,35 +48,40 @@ public class DeductInstance {
 		this.gamma = gamma;
 	}
 
-	public void initProtocol(PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV, Zp.ZpElement c, ElgamalCipherText ctrace, PSSignature randToken, Announcement[] announcements) {
+	public void initProtocol(PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV, Zp.ZpElement c, ElgamalCipherText ctrace, PSSignature randToken, Announcement[] schnorrAnnouncements, ArbitraryRangeProofPublicParameters rangePP, Announcement[] rangeAnnouncements) {
 		this.commitment = commitment;
 		this.commitmentOnV = commitmentOnV;
 		this.c = c;
 		this.ctrace = ctrace;
 		this.randToken = randToken;
-		this.announcements = announcements;
+		this.schnorrAnnouncements = schnorrAnnouncements;
+		this.rangeAnnouncements = rangeAnnouncements;
 
 		// set up protocol
-		this.protocol = ZKAKProvider.getSpendDeductVerifierProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentOnV);
+		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrVerifierProtocol(this.pp, this.c, this.gamma, this.pk, this.randToken, this.k, this.ctrace, this.commitment, this.commitmentOnV);
+		this.rangeProtocol = new ArbitraryRangeProofProtocolFactory(rangePP, "Spend/Deduct").getVerifierProtocol();
 	}
 
-	public Challenge chooseChallenge() {
-		if(protocol == null) {
+	public void chooseChallenge() {
+		if(schnorrProtocol == null || rangeProtocol == null) {
 			throw new IllegalStateException("Please initialize the protocol first!");
 		}
-		this.ch = protocol.chooseChallenge();
-		return this.ch;
+		this.schnorrChallenge = schnorrProtocol.chooseChallenge();
+		this.rangeChallenge = rangeProtocol.chooseChallenge();
 	}
 
-	public DeductOutput deduct(Response[] responses) {
-		if(protocol == null) {
+	public DeductOutput deduct(Response[] schnorrResponses, Response[] rangeResponses) {
+		if(schnorrProtocol == null || rangeProtocol == null) {
 			throw new IllegalStateException("Please initialize the protocol first!");
 		}
-		if (this.ch == null) {
+		if (this.schnorrChallenge == null || this.rangeChallenge == null) {
 			throw new IllegalStateException("Please run the ZKAK to completion first.");
 		}
-		if(!protocol.verify(announcements, ch, responses)) {
-			throw new IllegalStateException("Proof does not accept! Issue aborted...");
+		if(!schnorrProtocol.verify(schnorrAnnouncements, schnorrChallenge, schnorrResponses)) {
+			throw new IllegalStateException("Schnorr Proof does not accept! Issue aborted...");
+		}
+		if(!rangeProtocol.verify(rangeAnnouncements, rangeChallenge, rangeResponses)) {
+			throw new IllegalStateException("Range Proof does not accept! Issue aborted...");
 		}
 
 		Zp zp = new Zp(pp.group.getG1().size());
