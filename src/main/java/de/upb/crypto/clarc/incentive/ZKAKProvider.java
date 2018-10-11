@@ -5,6 +5,7 @@ import de.upb.crypto.clarc.predicategeneration.fixedprotocols.popk.ProofOfPartia
 import de.upb.crypto.clarc.predicategeneration.policies.SigmaProtocolPolicyFact;
 import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocol;
 import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocolFactory;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofPublicParameters;
 import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
 import de.upb.crypto.clarc.protocols.expressions.arith.*;
 import de.upb.crypto.clarc.protocols.expressions.comparison.ArithComparisonExpression;
@@ -14,7 +15,6 @@ import de.upb.crypto.clarc.protocols.protocolfactory.GeneralizedSchnorrProtocolF
 import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParameters;
 import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParametersGen;
 import de.upb.crypto.craco.commitment.pedersen.*;
-import de.upb.crypto.craco.common.RingElementPlainText;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
 import de.upb.crypto.craco.interfaces.policy.ThresholdPolicy;
 import de.upb.crypto.craco.secretsharing.ShamirSecretSharingSchemeProvider;
@@ -25,7 +25,6 @@ import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.interfaces.structures.PowProductExpression;
 import de.upb.crypto.math.structures.zn.Zp;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -204,45 +203,10 @@ public class ZKAKProvider {
 		ProductGroupElementExpression rhs = new ProductGroupElementExpression(new PowerGroupElementExpression(gY1Expr, vVar), new PowerGroupElementExpression(gExpr, rVVar));
 		GroupElementEqualityExpression problem3 = new GroupElementEqualityExpression(cVExpr, rhs);
 
-		GeneralizedSchnorrProtocolFactory compositeSchnoorFactory = new GeneralizedSchnorrProtocolFactory(
+		return new GeneralizedSchnorrProtocolFactory(
 				new ArithComparisonExpression[]{problem1, problem2, problem3, problem41, problem42, problem5},
 				new Zp(pp.group.getG1().size())
 		);
-
-		return compositeSchnoorFactory;
-	}
-
-	static ArbitraryRangeProofProtocolFactory getSpendDeductRangeProofProtocolFactory(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment, Zp.ZpElement k) {
-		NguyenAccumulatorPublicParametersGen nguyenGen = new NguyenAccumulatorPublicParametersGen();
-		NguyenAccumulatorPublicParameters nguyenPP = nguyenGen.setup(pp.group.getBilinearMap(), 20);
-
-		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), new GroupElement[] { pk.getGroup1ElementsYi()[0] }, pp.group.getG1());
-		Zp zp = new Zp(pp.group.getG1().size());
-
-		return new ArbitraryRangeProofProtocolFactory(commitment, pedersenPP, k.getInteger(), zp.valueOf(200).getInteger(), 0, zp, nguyenPP, "Spend/Deduct");
-	}
-
-	static SigmaProtocol getSpendDeductProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v) {
-		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOfValue, usk, dldsid, dsrnd, dldsidStar, dsrndStar, r, rC, rPrime, v);
-		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
-
-		ArbitraryRangeProofProtocol rangeProof = getSpendDeductRangeProverProtocol(pp, pk, k, commitmentOfValue, v);
-		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
-
-		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);
-
-		return new ProofOfPartialKnowledgeProtocol(
-					new ProofOfPartialKnowledgePublicParameters(
-							new ShamirSecretSharingSchemeProvider(),
-							new Zp(pp.group.getG1().size())
-					), policy
-				);
-	}
-
-	static ArbitraryRangeProofProtocol getSpendDeductRangeProverProtocol(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement v) {
-		ArbitraryRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, pk, commitmentOfValue.getCommitmentValue(), k);
-
-		return rangeFac.getProverProtocol(commitmentOfValue, v);
 	}
 
 	static GeneralizedSchnorrProtocol getSpendDeductSchnorrProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v) {
@@ -263,11 +227,43 @@ public class ZKAKProvider {
 		return schnorrFac.createProverGeneralizedSchnorrProtocol(witnessMapping);
 	}
 
-	static SigmaProtocol getSpendDeductVerifierProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV) {
-		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrVerifierProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOnV);
+	static GeneralizedSchnorrProtocol getSpendDeductSchnorrVerifierProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV) {
+		GeneralizedSchnorrProtocolFactory schnorrFac = getSpendDeductSchnoorProtocolFactory(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOnV);
+		return schnorrFac.createVerifierGeneralizedSchnorrProtocol();
+	}
+
+	/* Note that prover and verifier need to ne generated from the **same** factory. Therefore, this factory should only be set up by either the prover or the
+	 * verifier, and the parameters generated in that way should be sent to the other party. In this application, the user/prover generates the protocol and sends
+     * the parameters to the verifier
+	 */
+	static ArbitraryRangeProofProtocolFactory getSpendDeductRangeProofProtocolFactory(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment, Zp.ZpElement k) {
+		NguyenAccumulatorPublicParametersGen nguyenGen = new NguyenAccumulatorPublicParametersGen();
+		NguyenAccumulatorPublicParameters nguyenPP = nguyenGen.setup(pp.group.getBilinearMap(), 100);
+
+		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), new GroupElement[] { pk.getGroup1ElementsYi()[0] }, pp.group.getG1());
+		Zp zp = new Zp(pp.group.getG1().size());
+
+		return new ArbitraryRangeProofProtocolFactory(commitment, pedersenPP, k.getInteger(), zp.valueOf(Integer.MAX_VALUE).getInteger(), 0, zp, nguyenPP, "Spend/Deduct");
+	}
+
+	static ArbitraryRangeProofProtocol getSpendDeductRangeProverProtocol(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement v) {
+		ArbitraryRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, pk, commitmentOfValue.getCommitmentValue(), k);
+
+		return rangeFac.getProverProtocol(commitmentOfValue, v);
+	}
+
+	static ArbitraryRangeProofProtocol getSpendDeductRangeVerifierProtocol(ArbitraryRangeProofPublicParameters rangePP) {
+		ArbitraryRangeProofProtocolFactory rangeFac = new ArbitraryRangeProofProtocolFactory(rangePP, "Spend/Deduct");
+		return rangeFac.getVerifierProtocol();
+	}
+
+	/* Prover and Verifier protocols using PoPK */
+
+	static SigmaProtocol getSpendDeductProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v) {
+		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOfValue, usk, dldsid, dsrnd, dldsidStar, dsrndStar, r, rC, rPrime, v);
 		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
 
-		ArbitraryRangeProofProtocol rangeProof = getSpendDeductRangeVerifierProtocol(pp, pk, k, commitmentOnV);
+		ArbitraryRangeProofProtocol rangeProof = getSpendDeductRangeProverProtocol(pp, pk, k, commitmentOfValue, v);
 		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
 
 		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);
@@ -280,13 +276,20 @@ public class ZKAKProvider {
 		);
 	}
 
-	static ArbitraryRangeProofProtocol getSpendDeductRangeVerifierProtocol(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, PedersenCommitmentValue commitmentOnV) {
-		ArbitraryRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, pk, commitmentOnV, k);
-		return rangeFac.getVerifierProtocol();
-	}
+	static SigmaProtocol getSpendDeductVerifierProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV, ArbitraryRangeProofPublicParameters rangePP) {
+		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrVerifierProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOnV);
+		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
 
-	static GeneralizedSchnorrProtocol getSpendDeductSchnorrVerifierProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV) {
-		GeneralizedSchnorrProtocolFactory schnorrFac = getSpendDeductSchnoorProtocolFactory(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOnV);
-		return schnorrFac.createVerifierGeneralizedSchnorrProtocol();
+		ArbitraryRangeProofProtocol rangeProof = getSpendDeductRangeVerifierProtocol(rangePP);
+		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
+
+		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);
+
+		return new ProofOfPartialKnowledgeProtocol(
+				new ProofOfPartialKnowledgePublicParameters(
+						new ShamirSecretSharingSchemeProvider(),
+						new Zp(pp.group.getG1().size())
+				), policy
+		);
 	}
 }

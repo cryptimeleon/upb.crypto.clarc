@@ -20,7 +20,7 @@ public class ReceiveInstance {
 	// common input
 	IncentiveSystemPublicParameters pp;
 	PSExtendedVerificationKey pk;
-	UserKeyPair usrKeypair;
+	IncentiveUserKeyPair usrKeypair;
 
 	// state
 	Zp.ZpElement dldsid;
@@ -30,7 +30,7 @@ public class ReceiveInstance {
 
 	SigmaProtocol protocol;
 
-	public ReceiveInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, UserKeyPair usrKeypair, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement r, PedersenCommitmentValue c, SigmaProtocol protocol) {
+	public ReceiveInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, IncentiveUserKeyPair usrKeypair, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement r, PedersenCommitmentValue c, SigmaProtocol protocol) {
 		this.pp = pp;
 		this.pk = pk;
 		this.usrKeypair = usrKeypair;

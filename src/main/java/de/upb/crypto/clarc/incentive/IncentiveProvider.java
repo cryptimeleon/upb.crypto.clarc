@@ -7,24 +7,24 @@ import de.upb.crypto.craco.sig.ps.PSSignature;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
-public class Provider {
+public class IncentiveProvider {
 	IncentiveSystemPublicParameters pp;
-	ProviderKeyPair keys;
+	IncentiveProviderKeyPair keyPair;
 
-	public Provider(IncentiveSystemPublicParameters pp) {
+	public IncentiveProvider(IncentiveSystemPublicParameters pp) {
 		this.pp = pp;
-		ProviderSetup providerSetup = new ProviderSetup();
-		this.keys = providerSetup.generateProviderKeys(pp);
+		IncentiveProviderSetup providerSetup = new IncentiveProviderSetup();
+		this.keyPair = providerSetup.generateProviderKeys(pp);
 	}
 
 	public IssueInstance initIssue(IncentiveUserPublicKey userPublicKey, PedersenCommitmentValue c, Announcement[] announcements) {
-		SigmaProtocol protocol = ZKAKProvider.getIssueReceiveVerifierProtocol(pp, new Zp(pp.group.getG1().size()), userPublicKey, keys.providerPublicKey, c);
+		SigmaProtocol protocol = ZKAKProvider.getIssueReceiveVerifierProtocol(pp, new Zp(pp.group.getG1().size()), userPublicKey, keyPair.providerPublicKey, c);
 
-		return new IssueInstance(pp, keys.providerPublicKey, keys.providerSecretKey, userPublicKey, c, protocol, announcements);
+		return new IssueInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, userPublicKey, c, protocol, announcements);
 	}
 
 	public CreditInstance initCredit(Zp.ZpElement k, PSSignature randToken, Announcement[] announcements) {
-		return new CreditInstance(pp, keys.providerPublicKey, keys.providerSecretKey, k, randToken, ZKAKProvider.getCreditEarnVerifierProtocol(pp, randToken, keys.providerPublicKey), announcements);
+		return new CreditInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, randToken, ZKAKProvider.getCreditEarnVerifierProtocol(pp, randToken, keyPair.providerPublicKey), announcements);
 	}
 
 	public DeductInstance initDeduct(Zp.ZpElement k, GroupElement dsid) {
@@ -32,7 +32,7 @@ public class Provider {
 
 		Zp.ZpElement gamma = zp.getUniformlyRandomElement();
 
-		return new DeductInstance(pp, keys.providerPublicKey, keys.providerSecretKey, k, dsid, gamma);
+		return new DeductInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, dsid, gamma);
 
 	}
 

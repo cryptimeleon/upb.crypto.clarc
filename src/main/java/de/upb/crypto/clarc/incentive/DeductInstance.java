@@ -59,7 +59,7 @@ public class DeductInstance {
 
 		// set up protocol
 		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrVerifierProtocol(this.pp, this.c, this.gamma, this.pk, this.randToken, this.k, this.ctrace, this.commitment, this.commitmentOnV);
-		this.rangeProtocol = new ArbitraryRangeProofProtocolFactory(rangePP, "Spend/Deduct").getVerifierProtocol();
+		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeVerifierProtocol(rangePP);
 	}
 
 	public void chooseChallenge() {

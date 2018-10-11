@@ -6,7 +6,6 @@ import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentPair;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentScheme;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentValue;
 import de.upb.crypto.craco.commitment.pedersen.PedersenPublicParameters;
-import de.upb.crypto.craco.common.GroupElementPlainText;
 import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.common.RingElementPlainText;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
@@ -19,17 +18,16 @@ import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
-import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class User {
+public class IncentiveUser {
 	IncentiveSystemPublicParameters pp;
-	UserKeyPair keyPair;
+	IncentiveUserKeyPair keyPair;
 
-	public User(IncentiveSystemPublicParameters pp) {
+	public IncentiveUser(IncentiveSystemPublicParameters pp) {
 		this.pp = pp;
-		UserSetup usrSetup = new UserSetup();
+		IncentiveUserSetup usrSetup = new IncentiveUserSetup();
 		this.keyPair = usrSetup.generateUserKeys(this.pp);
 	}
 
