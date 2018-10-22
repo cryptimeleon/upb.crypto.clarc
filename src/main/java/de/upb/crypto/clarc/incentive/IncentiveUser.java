@@ -1,7 +1,10 @@
 package de.upb.crypto.clarc.incentive;
 
-import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocol;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofProtocol;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofProtocolFactory;
 import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
+import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParameters;
+import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParametersGen;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentPair;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentScheme;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentValue;
@@ -18,6 +21,7 @@ import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
+import java.math.BigInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -117,8 +121,10 @@ public class IncentiveUser {
 				g1
 		);
 		PedersenCommitmentScheme pedersen2 = new PedersenCommitmentScheme(pedersenPP2);
-		// need the whole pair for range proof constructor
 		PedersenCommitmentPair commitmentTokenValue = pedersen2.commit(new RingElementPlainText(token.value));
+		PedersenCommitmentValue commitmentV = commitmentTokenValue.getCommitmentValue();
+		Zp.ZpElement rV = commitmentTokenValue.getOpenValue().getRandomValue();
+		PedersenCommitmentValue commitmentVSubK = new PedersenCommitmentValue(commitmentV.getCommitmentElement().op(pedersenPP2.getH()[0].pow(k.neg())));
 
 		// protocol
 		SigmaProtocol protocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(
@@ -127,9 +133,7 @@ public class IncentiveUser {
 										token.value
 								);
 
-		ArbitraryRangeProofProtocol rangeProtocol = ZKAKProvider.getSpendDeductRangeProverProtocol(
-														this.pp, pk, k, commitmentTokenValue, token.value
-													);
+		ZeroToUPowLRangeProofProtocol rangeProtocol = ZKAKProvider.getSpendDeductRangeProverProtocol(pp, pk, commitmentVSubK, rV, (Zp.ZpElement) token.value.sub(k));
 
 		return new SpendInstance(this.pp, pk, k, dsid, usk, token, gamma, dldsidStar, dsrndStar, dsidStar, commitment, rC, c, ctrace, rPrime, randToken, commitmentTokenValue, protocol, rangeProtocol);
 	}

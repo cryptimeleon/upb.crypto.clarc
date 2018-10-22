@@ -3,9 +3,10 @@ package de.upb.crypto.clarc.incentive;
 import de.upb.crypto.clarc.predicategeneration.fixedprotocols.popk.ProofOfPartialKnowledgeProtocol;
 import de.upb.crypto.clarc.predicategeneration.fixedprotocols.popk.ProofOfPartialKnowledgePublicParameters;
 import de.upb.crypto.clarc.predicategeneration.policies.SigmaProtocolPolicyFact;
-import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocol;
-import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocolFactory;
 import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofPublicParameters;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofProtocol;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofProtocolFactory;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofPublicParameters;
 import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
 import de.upb.crypto.clarc.protocols.expressions.arith.*;
 import de.upb.crypto.clarc.protocols.expressions.comparison.ArithComparisonExpression;
@@ -25,6 +26,7 @@ import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.interfaces.structures.PowProductExpression;
 import de.upb.crypto.math.structures.zn.Zp;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -236,34 +238,34 @@ public class ZKAKProvider {
 	 * verifier, and the parameters generated in that way should be sent to the other party. In this application, the user/prover generates the protocol and sends
      * the parameters to the verifier
 	 */
-	static ArbitraryRangeProofProtocolFactory getSpendDeductRangeProofProtocolFactory(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment, Zp.ZpElement k) {
+	static ZeroToUPowLRangeProofProtocolFactory getSpendDeductRangeProofProtocolFactory(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment) {
 		NguyenAccumulatorPublicParametersGen nguyenGen = new NguyenAccumulatorPublicParametersGen();
 		NguyenAccumulatorPublicParameters nguyenPP = nguyenGen.setup(pp.group.getBilinearMap(), 100);
 
 		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), new GroupElement[] { pk.getGroup1ElementsYi()[0] }, pp.group.getG1());
 		Zp zp = new Zp(pp.group.getG1().size());
 
-		return new ArbitraryRangeProofProtocolFactory(commitment, pedersenPP, k.getInteger(), zp.valueOf(Integer.MAX_VALUE).getInteger(), 0, zp, nguyenPP, "Spend/Deduct");
+		return new ZeroToUPowLRangeProofProtocolFactory(commitment, pedersenPP, BigInteger.valueOf(16), ((int) Math.log(Integer.MAX_VALUE)) / ((int) Math.log(16)),0, zp, nguyenPP, "Spend/Deduct");
 	}
 
-	static ArbitraryRangeProofProtocol getSpendDeductRangeProverProtocol(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement v) {
-		ArbitraryRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, pk, commitmentOfValue.getCommitmentValue(), k);
+	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeProverProtocol(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment, Zp.ZpElement commitmentRandomness, Zp.ZpElement committedValue) {
+		ZeroToUPowLRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, pk, commitment);
 
-		return rangeFac.getProverProtocol(commitmentOfValue, v);
+		return rangeFac.getProverProtocol(commitmentRandomness, committedValue);
 	}
 
-	static ArbitraryRangeProofProtocol getSpendDeductRangeVerifierProtocol(ArbitraryRangeProofPublicParameters rangePP) {
-		ArbitraryRangeProofProtocolFactory rangeFac = new ArbitraryRangeProofProtocolFactory(rangePP, "Spend/Deduct");
+	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeVerifierProtocol(ZeroToUPowLRangeProofPublicParameters rangePP) {
+		ZeroToUPowLRangeProofProtocolFactory rangeFac = new ZeroToUPowLRangeProofProtocolFactory(rangePP, "Spend/Deduct");
 		return rangeFac.getVerifierProtocol();
 	}
 
 	/* Prover and Verifier protocols using PoPK */
 
-	static SigmaProtocol getSpendDeductProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v) {
+	static SigmaProtocol getSpendDeductProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v, PedersenCommitmentValue rangeCommitment, Zp.ZpElement rangeRandomness) {
 		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOfValue, usk, dldsid, dsrnd, dldsidStar, dsrndStar, r, rC, rPrime, v);
 		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
 
-		ArbitraryRangeProofProtocol rangeProof = getSpendDeductRangeProverProtocol(pp, pk, k, commitmentOfValue, v);
+		ZeroToUPowLRangeProofProtocol rangeProof = getSpendDeductRangeProverProtocol(pp, pk, rangeCommitment, rangeRandomness, (Zp.ZpElement) v.sub(k));
 		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
 
 		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);
@@ -280,7 +282,7 @@ public class ZKAKProvider {
 		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrVerifierProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOnV);
 		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
 
-		ArbitraryRangeProofProtocol rangeProof = getSpendDeductRangeVerifierProtocol(rangePP);
+		ZeroToUPowLRangeProofProtocol rangeProof = getSpendDeductRangeVerifierProtocol(rangePP);
 		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
 
 		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);

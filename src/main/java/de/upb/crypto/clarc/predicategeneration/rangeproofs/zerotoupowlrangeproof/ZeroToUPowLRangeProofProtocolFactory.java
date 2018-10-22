@@ -1,7 +1,6 @@
 package de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof;
 
 import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParameters;
-import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorValue;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentValue;
 import de.upb.crypto.craco.commitment.pedersen.PedersenPublicParameters;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
@@ -82,20 +81,17 @@ public class ZeroToUPowLRangeProofProtocolFactory {
      *
      * @param randomValue             for the attribute
      * @param zpRepresentationOfAlpha used to proof unequally to
-     * @param v                       the computed accumulator value (given for efficiency reasons)
      * @return a prover protocol.
      */
     public ZeroToUPowLRangeProofProtocol getProverProtocol(Zp.ZpElement randomValue, Zp.ZpElement
-            zpRepresentationOfAlpha, NguyenAccumulatorValue v) {
+            zpRepresentationOfAlpha) {
         return new ZeroToUPowLRangeProofProtocol(rangePP, uniqueName, new RangeProofWitness(uniqueName, zpRepresentationOfAlpha, randomValue));
     }
 
     /**
-     * @param v accumulator value, given for efficiency reasons
      * @return a verifier protocol for an rangeProof.
      */
-    public ZeroToUPowLRangeProofProtocol getVerifierProtocol(
-            NguyenAccumulatorValue v) {
+    public ZeroToUPowLRangeProofProtocol getVerifierProtocol() {
         return new ZeroToUPowLRangeProofProtocol(rangePP, uniqueName, null);
     }
 

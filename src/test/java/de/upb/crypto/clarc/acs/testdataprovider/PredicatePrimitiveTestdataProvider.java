@@ -161,7 +161,7 @@ public class PredicatePrimitiveTestdataProvider {
 
         NguyenAccumulator accumulator = new NguyenAccumulator(clarcPublicParameters.getNguyenAccumulatorPP());
         accumulatorValue = accumulator.create(rangeValues);
-        return factory.getProverProtocol(commitments.getOpenValue().getRandomValue(), alpha, accumulatorValue);
+        return factory.getProverProtocol(commitments.getOpenValue().getRandomValue(), alpha);
     }
 
     public ArbitraryRangeProofProtocol getArbitraryRangeProofProtocol(int positionInCredential, String name) {

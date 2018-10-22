@@ -1,6 +1,6 @@
 package de.upb.crypto.clarc.incentive;
 
-import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofPublicParameters;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofPublicParameters;
 import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.common.RingElementPlainText;
@@ -90,7 +90,7 @@ public class IncentiveSystemTest {
 		GroupElement userDoubleSpendID = output.doubleSpendID;
 		IncentiveToken userToken = output.token;
 
-		IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken);
+		IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken, POINTS_CREDITED);
 
 		// the balance after earn should be POINTS_CREDITED
 		assertEquals(updatedToken.value,zp.valueOf(POINTS_CREDITED));
@@ -113,20 +113,31 @@ public class IncentiveSystemTest {
 		IncentiveToken userToken = output.token;
 
 		// credit POINTS_CREDITED many points
-		IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken);
+		IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken, POINTS_CREDITED);
 
-		TokenDoubleSpendIdPair spend = spendDeduct(zp, user, provider, pk, userDoubleSpendID, updatedToken);
-
-		// double spend id different?
-		assertNotEquals(userDoubleSpendID, spend.doubleSpendID);
+		TokenDoubleSpendIdPair spend = spendDeduct(zp, user, provider, pk, userDoubleSpendID, updatedToken, POINTS_SPENT);
 
 		// balance updated?
 		assertEquals(spend.token.value, updatedToken.value.sub(zp.valueOf(POINTS_SPENT)));
 	}
 
-	TokenDoubleSpendIdPair spendDeduct(Zp zp, IncentiveUser user, IncentiveProvider provider, PSExtendedVerificationKey pk, GroupElement userDoubleSpendID, IncentiveToken updatedToken) {
+	@Test
+	public void testSpendDeductNegatively() {
+		// initialize a token
+		TokenDoubleSpendIdPair output = issueReceive(user, userPK, provider, pk);
+		GroupElement userDoubleSpendID = output.doubleSpendID;
+		IncentiveToken userToken = output.token;
+
+		// credit POINTS_CREDITED many points
+		IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken, POINTS_CREDITED);
+
+		// Range proof should throw illegal argument exception when v is not is the range.
+		assertThrows(IllegalArgumentException.class, () -> spendDeduct(zp, user, provider, pk, userDoubleSpendID, updatedToken, POINTS_CREDITED + 19));
+	}
+
+	TokenDoubleSpendIdPair spendDeduct(Zp zp, IncentiveUser user, IncentiveProvider provider, PSExtendedVerificationKey pk, GroupElement userDoubleSpendID, IncentiveToken updatedToken, int pointsSpent) {
 		// assumption: points k1 spent & double spend id known to both parties
-		Zp.ZpElement k1 = zp.valueOf(POINTS_SPENT);
+		Zp.ZpElement k1 = zp.valueOf(pointsSpent);
 		DeductInstance deductInstance = provider.initDeduct(k1, userDoubleSpendID);
 		// <-- gamma
 		SpendInstance spendInstance = user.initSpend(pk, k1, userDoubleSpendID, deductInstance.gamma, updatedToken);
@@ -142,7 +153,7 @@ public class IncentiveSystemTest {
 		// --> pp of the prover range proof protocol (ensure they use the same params)
 		// --> annoucement1
 		// --> annoucement2
-		deductInstance.initProtocol(spendInstance.commitment, spendInstance.commitmentOnValue.getCommitmentValue(), spendInstance.c, spendInstance.ctrace, spendInstance.randToken, schnorrAnnoucements, (ArbitraryRangeProofPublicParameters) spendInstance.rangeProtocol.getPublicParameters(), rangeAnnoucements);
+		deductInstance.initProtocol(spendInstance.commitment, spendInstance.commitmentOnValue.getCommitmentValue(), spendInstance.c, spendInstance.ctrace, spendInstance.randToken, schnorrAnnoucements, (ZeroToUPowLRangeProofPublicParameters) spendInstance.rangeProtocol.getPublicParameters(), rangeAnnoucements);
 
 		deductInstance.chooseChallenge();
 		// <-- ch
@@ -153,9 +164,9 @@ public class IncentiveSystemTest {
 		return spendInstance.spend(deduct.issuedSignature);
 	}
 
-	IncentiveToken creditEarn(Zp zp, IncentiveUser user, IncentiveProvider provider, PSExtendedVerificationKey pk, IncentiveToken userToken) {
+	IncentiveToken creditEarn(Zp zp, IncentiveUser user, IncentiveProvider provider, PSExtendedVerificationKey pk, IncentiveToken userToken, int pointsCredited) {
 		// asssumption: value k credited known to both parties
-		Zp.ZpElement k = zp.valueOf(POINTS_CREDITED);
+		Zp.ZpElement k = zp.valueOf(pointsCredited);
 		EarnInstance earnInstance = user.initEarn(pk, k, userToken);
 		// --> randToken
 		// --> annoucement
@@ -215,7 +226,7 @@ public class IncentiveSystemTest {
 			IncentiveToken userToken = output.token;
 
 			measureTime(null);
-			IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken);
+			IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken, POINTS_CREDITED);
 			measureTime("Credit / Earn");
 		}
 	}
@@ -226,10 +237,10 @@ public class IncentiveSystemTest {
 			TokenDoubleSpendIdPair output = issueReceive(user, userPK, provider, pk);
 			GroupElement userDoubleSpendID = output.doubleSpendID;
 			IncentiveToken userToken = output.token;
-			IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken);
+			IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken, POINTS_CREDITED);
 
 			measureTime(null);
-			TokenDoubleSpendIdPair spend = spendDeduct(zp, user, provider, pk, userDoubleSpendID, updatedToken);
+			TokenDoubleSpendIdPair spend = spendDeduct(zp, user, provider, pk, userDoubleSpendID, updatedToken, POINTS_SPENT);
 			measureTime("Spend / Deduct");
 		}
 	}

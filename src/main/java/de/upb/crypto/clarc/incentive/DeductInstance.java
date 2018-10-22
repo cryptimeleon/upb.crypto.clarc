@@ -1,11 +1,7 @@
 package de.upb.crypto.clarc.incentive;
 
-import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocol;
-import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofProtocolFactory;
-import de.upb.crypto.clarc.predicategeneration.rangeproofs.ArbitraryRangeProofPublicParameters;
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofPublicParameters;
 import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
-import de.upb.crypto.clarc.protocols.generalizedschnorrprotocol.GeneralizedSchnorrAnnouncement;
-import de.upb.crypto.clarc.protocols.generalizedschnorrprotocol.GeneralizedSchnorrProtocol;
 import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.clarc.protocols.parameters.Challenge;
 import de.upb.crypto.clarc.protocols.parameters.Response;
@@ -48,7 +44,7 @@ public class DeductInstance {
 		this.gamma = gamma;
 	}
 
-	public void initProtocol(PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV, Zp.ZpElement c, ElgamalCipherText ctrace, PSSignature randToken, Announcement[] schnorrAnnouncements, ArbitraryRangeProofPublicParameters rangePP, Announcement[] rangeAnnouncements) {
+	public void initProtocol(PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV, Zp.ZpElement c, ElgamalCipherText ctrace, PSSignature randToken, Announcement[] schnorrAnnouncements, ZeroToUPowLRangeProofPublicParameters rangePP, Announcement[] rangeAnnouncements) {
 		this.commitment = commitment;
 		this.commitmentOnV = commitmentOnV;
 		this.c = c;
