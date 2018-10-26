@@ -1,0 +1,14 @@
+language: java
+jdk:
+- openjdk8
+- openjdk11
+deploy:
+  provider: releases
+  api_key:
+    secure: MzB4DEXioCIPvQmcdA607N/o88BM73x3lJtoYoR58GqGivNMkGabQFwR4G0Umtq7ZC699VrKob9EOXnqn9XuN0wX0Yd92cCKAxrtK5kg2satJ/+6cpEjXPFB+SCHPkTY1dZCWh84HRPB30lrZSYSuTOsFBzsrEWhgVlDJaVPA43XH72Zj6Y04g2sDcSYlyIPb3XJ0P/RLb4oF2wDxrjBOe+o/FBX7QTyYly+CJiq2FmGZYYmAiwTPQ0/TV9MPxEe9tBupcopwy3dnx9vv+Zp9Hd6Wk991ZKXIdcMdWUpfYGVJux/jp0J46owsA2f/VqdciLpgJcgocJyZp1jsQDGy9JUw9kAdfDBct3ZOPiPNgqSItt7qKPIggdydceBHFaC0EvtT9O22KAukQoV52Ga6LirByJ8uXxZnszuYlw9HJPZfXMfUzfu7LVlUI6x6KtRclaSJHQfv8R3abwtJSgrvQZgW4s/Px17Fp8sTF16dOsAsVVEBlKVLY6zkjHxV0Q2Su02Uwq/UU7FMdYC/BMvx2VAIaGMD+syeFvUH9CxyuI+gdTOZs8u/1IsDCUP5bLYy8GHAkinQpD/BjRVJX3A1rqPbt6QJjmJOpRyigpN06yrm9fUw6pohggk4/wWJpU4QZEvJGUr/8UWFoG2lvwtJiIkCCB9vy5+mXKgo/E2UKo=
+  file_glob: true
+  file: build/libs/*
+  skip_cleanup: true
+  on:
+    repo: upbcuk/upb.crypto.math
+    tags: true
