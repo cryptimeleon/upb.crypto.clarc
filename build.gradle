@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'de.upb.crypto.clarc'
-version = '1.0.0-SNAPSHOT'
+version = '1.0.0' + (Boolean.valueOf(System.getProperty("snapshot")) ? "-SNAPSHOT" : "")
 
 description = """"""
 
@@ -22,6 +22,7 @@ repositories {
     mavenCentral()
     mavenLocal()
     maven { url "https://nexus.cs.upb.de/repository/sfb901-libs/" }
+    maven { url "https://nexus.cs.upb.de/repository/sfb901-releases/" }
     maven { url "https://nexus.cs.upb.de/repository/sfb901-snapshots/" }
 }
 
@@ -80,4 +81,26 @@ configurations {
 }
 artifacts {
     archives packageTests
+}
+
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+
+    }
+
+    repositories {
+        maven {
+            credentials {
+                username = System.getProperty('nexus.user')
+                password = System.getProperty('nexus.key')
+            }
+            def releasesRepoUrl = "https://nexus.cs.upb.de/repository/sfb901-releases/"
+            def snapshotsRepoUrl = "https://nexus.cs.upb.de/repository/sfb901-snapshots/"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        }
+    }
 }
