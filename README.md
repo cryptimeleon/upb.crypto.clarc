@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/upbcuk/upb.crypto.clarc.svg?branch=master)](https://travis-ci.com/upbcuk/upb.crypto.clarc)
 # upb.crypto.clarc
 Cryptographic Library for Anonymous Reputation and Credentials
 
