@@ -155,7 +155,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
         // e(L1, b) = e(H(rpk, item)^{zeta + usk}, b) = e(H(rpk, item), b)^{zeta} * e(H(rpk, item), b)^{usk}
         output.op(L1, systemManagerPublicIdentity.getLinkabilityBasis());
         // e(H(rpk, item), b^zeta)^{-1} = e(H(rpk, item), b)^{-zeta}
-        output.op(pp.getBilinearMap().pairingProductExpression().op(hash, L2).inv());
+        output.op(hash, L2, BigInteger.valueOf(-1));
 
         // output = e(H(rpk, item), b)^{usk}
         return output.evaluate();
