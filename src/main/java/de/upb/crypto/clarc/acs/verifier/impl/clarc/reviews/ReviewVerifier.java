@@ -19,6 +19,8 @@ import de.upb.crypto.math.interfaces.mappings.BilinearMap;
 import de.upb.crypto.math.interfaces.mappings.PairingProductExpression;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 
+import java.math.BigInteger;
+
 import static de.upb.crypto.clarc.acs.protocols.impl.clarc.ComputeRatingPublicKeyAndItemHashHelper.getHashedRatingPublicKeyAndItem;
 
 /**
@@ -118,8 +120,8 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
     }
 
     /**
-     * This method computes the group element {@code e( H(rpk, item), b )^usk} for linking base b, rating public key
-     * rpk and item identifier item.
+     * This method computes the {@link de.upb.crypto.math.interfaces.hash.UniqueByteRepresentable} of the group element
+     * {@code e( H(rpk, item), b )^usk} for linking base b, rating public key rpk and item identifier item.
      * <p>
      * This element enables an efficient check whether a user (identified by usk) already published an rating for an
      * item (identified by (rpk, item)). This is motivated by the fact that this check would need O(n^2) comparisons
@@ -131,9 +133,9 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
      *
      * @param review
      *              the linking tag is to computed for
-     * @return {@code e( H(rpk, item), b )^usk}
+     * @return UBR of {@code e( H(rpk, item), b )^usk}
      */
-    public GroupElement getLinkingTag(Review review) {
+    public byte[] getLinkingTag(Review review) {
         if (!verify(review)) {
             throw new IllegalArgumentException("The given review is not valid!");
         }
@@ -158,6 +160,6 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
         output.op(hash, L2, BigInteger.valueOf(-1));
 
         // output = e(H(rpk, item), b)^{usk}
-        return output.evaluate();
+        return output.evaluate().getUniqueByteRepresentation();
     }
 }
