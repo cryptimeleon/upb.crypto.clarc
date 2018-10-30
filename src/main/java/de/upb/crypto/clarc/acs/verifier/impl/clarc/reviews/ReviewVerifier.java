@@ -127,7 +127,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
      * where n is the number of review in the database. Using the linking tag the only thing the database now needs to
      * do is store the tag along with the review. Whenever a new review is supposed to be published, one only needs to
      * compute the linking tag and compares it with the tags already stored. If there is a duplicate, the rating should
-     * not be accepted. Otherwise, review and tag should be stored in the
+     * not be accepted. Otherwise, review and tag should be stored in the database for future duplicate checks.
      *
      * @param review
      *              the linking tag is to computed for
