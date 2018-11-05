@@ -16,7 +16,10 @@ import de.upb.crypto.craco.sig.ps.PSExtendedSignatureScheme;
 import de.upb.crypto.craco.sig.ps.PSExtendedVerificationKey;
 import de.upb.crypto.math.hash.impl.SHA256HashFunction;
 import de.upb.crypto.math.interfaces.mappings.BilinearMap;
+import de.upb.crypto.math.interfaces.mappings.PairingProductExpression;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
+
+import java.math.BigInteger;
 
 import static de.upb.crypto.clarc.acs.protocols.impl.clarc.ComputeRatingPublicKeyAndItemHashHelper.getHashedRatingPublicKeyAndItem;
 
@@ -85,7 +88,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
     }
 
     /**
-     * This method hecks if the signature within the review is valid by using the {@link FiatShamirSignatureScheme}
+     * This method checks if the signature within the review is valid by using the {@link FiatShamirSignatureScheme}
      * and the {@link RateVerifyProtocolFactory}.
      *
      * @param review The review to check
@@ -114,5 +117,49 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
                 new FiatShamirSignatureScheme(protocolProvider, new SHA256HashFunction());
         FiatShamirVerificationKey verificationKey = new FiatShamirVerificationKey(rateVerifyProtocol.getProblems());
         return signatureScheme.verify(clarcReview.getMessage(), clarcReview.getRatingSignature(), verificationKey);
+    }
+
+    /**
+     * This method computes the {@link de.upb.crypto.math.interfaces.hash.UniqueByteRepresentable} of the group element
+     * {@code e( H(rpk, item), b )^usk} for linking base b, rating public key rpk and item identifier item.
+     * <p>
+     * This element enables an efficient check whether a user (identified by usk) already published an rating for an
+     * item (identified by (rpk, item)). This is motivated by the fact that this check would need O(n^2) comparisons
+     * when using {@link #areFromSameUser(de.upb.crypto.clarc.acs.review.Review, de.upb.crypto.clarc.acs.review.Review)},
+     * where n is the number of review in the database. Using the linking tag the only thing the database now needs to
+     * do is store the tag along with the review. Whenever a new review is supposed to be published, one only needs to
+     * compute the linking tag and compares it with the tags already stored. If there is a duplicate, the rating should
+     * not be accepted. Otherwise, review and tag should be stored in the database for future duplicate checks.
+     *
+     * @param review
+     *              the linking tag is to computed for
+     * @return UBR of {@code e( H(rpk, item), b )^usk}
+     */
+    public byte[] getLinkingTag(Review review) {
+        if (!verify(review)) {
+            throw new IllegalArgumentException("The given review is not valid!");
+        }
+
+        // L1 = H^{zeta + usk}
+        GroupElement L1 = review.getL1();
+        // L2 = b^zeta
+        GroupElement L2 = review.getL2();
+
+        ReviewToken token = new ReviewToken(
+                                review.getBlindedTokenSignature(),
+                                review.getItem(),
+                                raterPublicKey
+                            );
+
+        GroupElement hash = getHashedRatingPublicKeyAndItem(token, pp);
+
+        PairingProductExpression output = pp.getBilinearMap().pairingProductExpression();
+        // e(L1, b) = e(H(rpk, item)^{zeta + usk}, b) = e(H(rpk, item), b)^{zeta} * e(H(rpk, item), b)^{usk}
+        output.op(L1, systemManagerPublicIdentity.getLinkabilityBasis());
+        // e(H(rpk, item), b^zeta)^{-1} = e(H(rpk, item), b)^{-zeta}
+        output.op(hash, L2, BigInteger.valueOf(-1));
+
+        // output = e(H(rpk, item), b)^{usk}
+        return output.evaluate().getUniqueByteRepresentation();
     }
 }
