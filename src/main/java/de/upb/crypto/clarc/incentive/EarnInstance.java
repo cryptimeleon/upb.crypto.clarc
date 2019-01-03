@@ -15,6 +15,18 @@ import de.upb.crypto.math.structures.zn.Zp;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * A prover instance of the Earn <-> Credit protocol.
+ * <p>
+ * It is set up with the common input, the prover's private input and the prover instance of the {@link SigmaProtocol}
+ * ran during the protocol execution. After setup this instance can be used to generate every message sent from the prover
+ * to the verifier. The correct (temporal) order of method invocation is:
+ *  1. {@link #generateAnnoucements()}
+ *  2. {@link #generateAnnoucements()}
+ *  3. {@link #earn(PSSignature)}
+ * After {@link #earn(PSSignature)} was run, the prover should have obtained an updated token for the same double-spend ID
+ * credited with the negotiated amount of 'points'.
+ */
 public class EarnInstance {
 
 	IncentiveSystemPublicParameters pp;

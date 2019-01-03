@@ -9,6 +9,16 @@ import de.upb.crypto.craco.sig.ps.*;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
+/**
+ * A verifier instance of the Receive <-> Issue protocol.
+ * <p>
+ * It is set up with the common input, the verifier's private input, the verifier instance of the {@link SigmaProtocol}
+ * ran during the protocol execution and the annoucement sent by the prover as the first message. After setup this instance
+ * can be used to generate every message sent from the verifier to the prover.
+ * The correct (temporal) order of method invocation is:
+ *  1. {@link #chooseChallenge()}
+ *  2. {@link #issue(Response[])}
+ */
 public class IssueInstance {
 	IncentiveSystemPublicParameters pp;
 	PSExtendedVerificationKey pk;

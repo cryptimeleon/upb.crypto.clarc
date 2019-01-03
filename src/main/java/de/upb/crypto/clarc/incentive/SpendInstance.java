@@ -19,6 +19,18 @@ import de.upb.crypto.math.structures.zn.Zp;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * A prover instance of the Spend <-> Deduct protocol.
+ * <p>
+ * It is set up with the common input, the prover's private input, and the prover instance of the {@link de.upb.crypto.clarc.protocols.generalizedschnorrprotocol.GeneralizedSchnorrProtocol} and of {@link de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofProtocol} ran during the protocol execution. After setup this instance can be used to generate every message sent from the prover to the verifier.
+ * The correct (temporal) order of method invocation is:
+ *  1. {@link #generateSchnorrAnnoucements()}
+ *  2. {@link #generateRangeAnnoucements()}
+ *  3. {@link #generateSchnorrResponses(Challenge)}
+ *  4. {@link #generateRangeAnnoucements()}
+ *  3. {@link #spend(PSSignature)} (PSSignature)}
+ * After {@link #spend(PSSignature)} was run, the prover should have obtained an updated token for a new double-spend id.
+ */
 public class SpendInstance {
 	IncentiveSystemPublicParameters pp;
 	PSExtendedVerificationKey pk;

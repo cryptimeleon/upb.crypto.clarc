@@ -7,6 +7,11 @@ import de.upb.crypto.craco.sig.ps.PSSignature;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
+/**
+ * Represents the provider of the incentive system,
+ * <p>
+ * The main task is to set up the verifier instances of the protocols ran in the system.
+ */
 public class IncentiveProvider {
 	IncentiveSystemPublicParameters pp;
 	IncentiveProviderKeyPair keyPair;

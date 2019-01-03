@@ -9,6 +9,9 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 
+/**
+ * Setup of the incentive system.
+ */
 public class IncentiveSystemSetup {
 
 	public IncentiveSystemPublicParameters generatePublicParameter(int securityParameter) {

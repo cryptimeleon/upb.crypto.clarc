@@ -25,6 +25,11 @@ import java.math.BigInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Represents the user of the incentive system,
+ * <p>
+ * The main task is to set up the prover instances of the protocols ran in the system.
+ */
 public class IncentiveUser {
 	IncentiveSystemPublicParameters pp;
 	IncentiveUserKeyPair keyPair;
