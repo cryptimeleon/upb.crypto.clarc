@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'de.upb.crypto.clarc'
-version = '1.0.0' + (Boolean.valueOf(System.getProperty("snapshot")) ? "-SNAPSHOT" : "")
+version = '1.1.0' + (Boolean.valueOf(System.getProperty("snapshot")) ? "-SNAPSHOT" : "")
 
 description = """"""
 
