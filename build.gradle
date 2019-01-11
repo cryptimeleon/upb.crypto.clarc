@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'de.upb.crypto.clarc'
-version = '1.0.0' + (Boolean.valueOf(System.getProperty("snapshot")) ? "-SNAPSHOT" : "")
+version = '1.1.0' + (Boolean.valueOf(System.getProperty("snapshot")) ? "-SNAPSHOT" : "")
 
 description = """"""
 
@@ -30,10 +30,8 @@ dependencies {
     // This dependency is exported to consumers, that is to say found on their compile classpath.
     api 'org.apache.commons:commons-math3:3.6.1'
 
-    api group: 'de.upb.crypto', name: 'math', version: '1.0.0-SNAPSHOT'
-    api group: 'de.upb.crypto', name: 'mclwrap', version: '0.0.1-SNAPSHOT'
-    //api group: 'de.upb.crypto', name: 'bnnative', version: '0.0.1-SNAPSHOT' //not yet publicly available
-    api group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0-SNAPSHOT'
+    api group: 'de.upb.crypto', name: 'math', version: '1.0.0'
+    api group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0'
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation 'com.google.guava:guava:23.0'
@@ -42,7 +40,7 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
 
     // For tests
-    testImplementation group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0-SNAPSHOT', classifier: 'tests'
+    testImplementation group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0', classifier: 'tests'
     testImplementation 'org.easymock:easymock:3.5'
     // Use JUnit 5 test framework
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.2.0'
