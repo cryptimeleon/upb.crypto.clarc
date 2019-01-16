@@ -142,16 +142,17 @@ public class ReputationSystemTest {
 
         ReviewToken reviewToken1 =
                 clarcUser.getReviewTokens(reviewTokenIssuer.getPublicIdentity(), "123".getBytes())[0];
-        Review review1 = clarcUser.createReview("This item was awesome".getBytes(), reviewToken1);
+        de.upb.crypto.clarc.acs.review.impl.clarc.Review review1 = clarcUser.createReview("This item was awesome".getBytes(), reviewToken1);
         assertNotNull(review1, "review should not ne null");
 
         ReviewToken reviewToken2 =
                 clarcUser.getReviewTokens(reviewTokenIssuer.getPublicIdentity(), "123".getBytes())[1];
-        Review review2 = clarcUser.createReview("This item was not awesome".getBytes(), reviewToken2);
+        de.upb.crypto.clarc.acs.review.impl.clarc.Review review2 = clarcUser.createReview("This item was not awesome".getBytes(), reviewToken2);
         assertNotNull(review2, "review should not ne null");
 
         assertTrue(reviewVerifier.verify(review1), "verification should have worked");
         assertTrue(reviewVerifier.verify(review2), "verification should have worked");
         assertTrue(reviewVerifier.areFromSameUser(review1, review2), "reviews are from the same user");
+        assertArrayEquals(reviewVerifier.getLinkingTag(review1), reviewVerifier.getLinkingTag(review2), "Linking tags are equal");
     }
 }
