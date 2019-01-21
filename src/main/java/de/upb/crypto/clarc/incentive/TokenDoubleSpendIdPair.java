@@ -4,18 +4,18 @@ import de.upb.crypto.math.interfaces.structures.GroupElement;
 
 public class TokenDoubleSpendIdPair {
 	IncentiveToken token;
-	GroupElement doubleSpendID;
+	GroupElement doubleSpendIDinGroup;
 
-	public TokenDoubleSpendIdPair(IncentiveToken token, GroupElement doubleSpendID) {
+	public TokenDoubleSpendIdPair(IncentiveToken token, GroupElement doubleSpendIDinGroup) {
 		this.token = token;
-		this.doubleSpendID = doubleSpendID;
+		this.doubleSpendIDinGroup = doubleSpendIDinGroup;
 	}
 
 	public IncentiveToken getToken() {
 		return token;
 	}
 
-	public GroupElement getDoubleSpendID() {
-		return doubleSpendID;
+	public GroupElement getDoubleSpendIDinGroup() {
+		return doubleSpendIDinGroup;
 	}
 }

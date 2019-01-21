@@ -66,7 +66,7 @@ public class EarnInstance {
 		PSSignature unblindedSig = signatureScheme.unblindSignature(blindedSig, rPrime);
 
 		MessageBlock msg = new MessageBlock();
-		Stream.of(userSecretKey.usk, token.dldsid, token.dsrnd, token.value.add(k))
+		Stream.of(userSecretKey.usk, token.dsid, token.dsrnd, token.value.add(k))
 				.map(RingElementPlainText::new)
 				.collect(Collectors.toCollection(() -> msg));
 
@@ -74,6 +74,6 @@ public class EarnInstance {
 			throw new IllegalStateException("Not a valid signature!");
 		}
 
-		return new IncentiveToken(token.dldsid, token.dsrnd, token.value.add(k), unblindedSig);
+		return new IncentiveToken(token.dsid, token.dsrnd, token.value.add(k), unblindedSig);
 	}
 }

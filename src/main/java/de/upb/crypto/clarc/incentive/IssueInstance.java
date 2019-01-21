@@ -5,6 +5,7 @@ import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.clarc.protocols.parameters.Challenge;
 import de.upb.crypto.clarc.protocols.parameters.Response;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentValue;
+import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
 import de.upb.crypto.craco.sig.ps.*;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
@@ -25,19 +26,36 @@ public class IssueInstance {
 	PSSigningKey sk;
 	IncentiveUserPublicKey userPublicKey;
 
+	Zp.ZpElement dsidIsr;
+	ElgamalCipherText cDsid;
+
 	PedersenCommitmentValue c;
 	SigmaProtocol protocol;
 	Announcement[] announcements;
 	Challenge ch;
 
-
-	public IssueInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PSSigningKey sk, IncentiveUserPublicKey userPublicKey, PedersenCommitmentValue c, SigmaProtocol protocol, Announcement[] announcements) {
+	public IssueInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PSSigningKey sk, IncentiveUserPublicKey userPublicKey, Zp.ZpElement dsidIsr, ElgamalCipherText cDsid) {
 		this.pp = pp;
 		this.pk = pk;
 		this.sk = sk;
 		this.userPublicKey = userPublicKey;
+		this.dsidIsr = dsidIsr;
+		this.cDsid = cDsid;
+	}
+
+	/**
+	 * Initializes the verfierer protocol of Issue/Receive.
+	 *
+	 * In particular, this sets up the ZKAK protocol instance, and stores the announcements for the verification in {@link #issue(Response[])}.
+	 *
+	 * @param c
+	 *          commitment computed by the receiver that should be signed blindly
+	 * @param announcements
+	 *          Receiver's announcement
+	 */
+	public void initProtocol(PedersenCommitmentValue c, Announcement[] announcements) {
 		this.c = c;
-		this.protocol = protocol;
+		this.protocol = ZKAKProvider.getIssueReceiveVerifierProtocol(pp, new Zp(pp.group.getG1().size()), userPublicKey, pk, c, cDsid);
 		this.announcements = announcements;
 	}
 

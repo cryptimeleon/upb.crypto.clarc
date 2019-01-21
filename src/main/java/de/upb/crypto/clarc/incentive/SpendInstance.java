@@ -5,14 +5,20 @@ import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.clarc.protocols.parameters.Challenge;
 import de.upb.crypto.clarc.protocols.parameters.Response;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentPair;
+import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentScheme;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentValue;
+import de.upb.crypto.craco.commitment.pedersen.PedersenPublicParameters;
 import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.common.RingElementPlainText;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
+import de.upb.crypto.craco.enc.asym.elgamal.ElgamalEncryption;
+import de.upb.crypto.craco.enc.asym.elgamal.ElgamalPlainText;
+import de.upb.crypto.craco.enc.asym.elgamal.ElgamalPublicKey;
 import de.upb.crypto.craco.sig.ps.PSExtendedSignatureScheme;
 import de.upb.crypto.craco.sig.ps.PSExtendedVerificationKey;
 import de.upb.crypto.craco.sig.ps.PSPublicParameters;
 import de.upb.crypto.craco.sig.ps.PSSignature;
+import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
@@ -35,47 +41,106 @@ public class SpendInstance {
 	IncentiveSystemPublicParameters pp;
 	PSExtendedVerificationKey pk;
 	Zp.ZpElement k;
-	GroupElement dsid;
+	Zp.ZpElement dsid;
+	GroupElement upk;
 	Zp.ZpElement usk;
 	IncentiveToken token;
 
+	// 1st move
+	Zp.ZpElement dsidUsrStar;
+	Zp.ZpElement openStar;
+	ElgamalCipherText cUsrStar;
+
+	// 2nd move
+	Zp.ZpElement dsidStar;
 	Zp.ZpElement gamma;
+	ElgamalCipherText cDsidStar;
 
-	Zp.ZpElement dldsidStar;
 	Zp.ZpElement dsrndStar;
-	GroupElement dsidStar;
-	PedersenCommitmentValue commitment;
+	GroupElement dsidInGroupStar;
 	Zp.ZpElement rC;
-	Zp.ZpElement c;
-	ElgamalCipherText ctrace;
 
-	Zp.ZpElement rPrime;
-	PSSignature randToken;
-	PedersenCommitmentPair commitmentOnValue;
 
 	SigmaProtocol schnorrProtocol;
 	SigmaProtocol rangeProtocol;
+	PedersenCommitmentValue commitment;
+	Zp.ZpElement c;
+	PedersenCommitmentValue commitmentOnValue;
+	PSSignature randToken;
+	ElgamalCipherText ctrace;
 
-	public SpendInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, GroupElement dsid, Zp.ZpElement usk, IncentiveToken token, Zp.ZpElement gamma, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, GroupElement dsidStar, PedersenCommitmentValue commitment, Zp.ZpElement rC, Zp.ZpElement c, ElgamalCipherText ctrace, Zp.ZpElement rPrime, PSSignature randToken, PedersenCommitmentPair commitmentOnValue, SigmaProtocol schnorrProtocol, SigmaProtocol rangeProtocol) {
+	public SpendInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, Zp.ZpElement dsid, GroupElement upk, Zp.ZpElement usk, IncentiveToken token, Zp.ZpElement dsidUsrStar, Zp.ZpElement openStar, ElgamalCipherText cUsrStar) {
 		this.pp = pp;
 		this.pk = pk;
 		this.k = k;
 		this.dsid = dsid;
+		this.upk = upk;
 		this.usk = usk;
 		this.token = token;
+		this.dsidUsrStar = dsidUsrStar;
+		this.openStar = openStar;
+		this.cUsrStar = cUsrStar;
+	}
+
+	public void initProtocol(Zp.ZpElement dsidIsrStar, Zp.ZpElement gamma) {
+		Group g1 = pp.group.getG1();
+		Zp zp = new Zp(g1.size());
+
+		this.dsidStar = dsidUsrStar.add(dsidIsrStar);
+		this.cDsidStar = new ElgamalCipherText(cUsrStar.getC1(), cUsrStar.getC2().op(pp.g.pow(dsidIsrStar)));
 		this.gamma = gamma;
-		this.dldsidStar = dldsidStar;
-		this.dsrndStar = dsrndStar;
-		this.dsidStar = dsidStar;
-		this.commitment = commitment;
-		this.rC = rC;
-		this.c = c;
-		this.ctrace = ctrace;
-		this.rPrime = rPrime;
-		this.randToken = randToken;
-		this.commitmentOnValue = commitmentOnValue;
-		this.schnorrProtocol = schnorrProtocol;
-		this.rangeProtocol = rangeProtocol;
+
+
+		// double spend stuff
+		this.dsrndStar = zp.getUniformlyRandomElement();
+		this.dsidInGroupStar = pp.w.pow(dsidStar);
+
+		// commitment C using randomness rC
+		MessageBlock msg = new MessageBlock();
+		Stream.of(usk, dsidStar, dsrndStar, token.value.sub(k)).map(RingElementPlainText::new).collect(Collectors.toCollection(() -> msg));
+		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), pk.getGroup1ElementsYi(), g1);
+
+		PedersenCommitmentScheme pedersen = new PedersenCommitmentScheme(pedersenPP);
+		PedersenCommitmentPair commitmentPair = pedersen.commit(msg);
+		this.commitment = commitmentPair.getCommitmentValue();
+		this.rC = commitmentPair.getOpenValue().getRandomValue();
+
+		// linking value c
+		this.c = usk.mul(gamma).add(token.dsrnd);
+
+		// encryption ctrace of dsidInGroup*
+		ElgamalPublicKey encKey = new ElgamalPublicKey(g1, pp.w, upk);
+		ElgamalEncryption elgamal = new ElgamalEncryption(g1);
+		Zp.ZpElement r = zp.getUniformlyRandomElement();
+		this.ctrace = (ElgamalCipherText) elgamal.encrypt(new ElgamalPlainText(dsidInGroupStar), encKey, r.getInteger());
+
+		// randomize token signature sigma -> sigma'
+		Zp.ZpElement r2Prime = zp.getUniformlyRandomUnit();
+		Zp.ZpElement rPrime = zp.getUniformlyRandomElement();
+		GroupElement sigma0 = token.token.getGroup1ElementSigma1();
+		GroupElement sigma1 = token.token.getGroup1ElementSigma2();
+		this.randToken = new PSSignature(
+				sigma0.asPowProductExpression().pow(r2Prime).evaluate(),
+				sigma1.asPowProductExpression().op(sigma0, rPrime).pow(r2Prime).evaluate()
+		);
+
+		// commitment on value v for range proof using randomness rV
+		// C = g^{y_1 * v} * g^{rV} for rV in open value
+		PedersenPublicParameters pedersenPP2 = new PedersenPublicParameters(
+				pk.getGroup1ElementG(),
+				new GroupElement[]{pk.getGroup1ElementsYi()[0]},
+				g1
+		);
+		PedersenCommitmentScheme pedersen2 = new PedersenCommitmentScheme(pedersenPP2);
+		PedersenCommitmentPair commitmentTokenValue = pedersen2.commit(new RingElementPlainText(token.value));
+		this.commitmentOnValue = commitmentTokenValue.getCommitmentValue();
+		Zp.ZpElement rV = commitmentTokenValue.getOpenValue().getRandomValue();
+		PedersenCommitmentValue commitmentVSubK = new PedersenCommitmentValue(commitmentOnValue.getCommitmentElement().op(pedersenPP2.getH()[0].pow(k.neg())));
+
+		// protocol
+		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentTokenValue, usk, dsid, token.dsrnd, dsidStar, dsrndStar, r, rC, rPrime, token.value, openStar, cDsidStar);
+
+		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeProverProtocol(pp, pk, commitmentVSubK, rV, (Zp.ZpElement) token.value.sub(k));
 	}
 
 	public Announcement[] generateSchnorrAnnoucements() {
@@ -102,7 +167,7 @@ public class SpendInstance {
 		MessageBlock messages = new MessageBlock();
 		Stream.of(
 				usk,
-				dldsidStar, dsrndStar,
+				dsidStar, dsrndStar,
 				token.value.sub(k)
 		).map(RingElementPlainText::new).collect(Collectors.toCollection(() -> messages));
 
@@ -110,6 +175,6 @@ public class SpendInstance {
 			throw new IllegalStateException("Not a valid signature!");
 		}
 		// output token
-		return new TokenDoubleSpendIdPair(new IncentiveToken(dldsidStar, dsrndStar, (Zp.ZpElement) token.value.sub(k), unblindedSig), dsidStar);
+		return new TokenDoubleSpendIdPair(new IncentiveToken(dsidStar, dsrndStar, (Zp.ZpElement) token.value.sub(k), unblindedSig), dsidInGroupStar);
 	}
 }

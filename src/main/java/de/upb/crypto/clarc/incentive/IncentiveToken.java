@@ -4,11 +4,11 @@ import de.upb.crypto.craco.sig.ps.PSSignature;
 import de.upb.crypto.math.structures.zn.Zp;
 
 public class IncentiveToken {
-	Zp.ZpElement dldsid, dsrnd, value;
+	Zp.ZpElement dsid, dsrnd, value;
 	PSSignature token;
 
-	public IncentiveToken(Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement value, PSSignature token) {
-		this.dldsid = dldsid;
+	public IncentiveToken(Zp.ZpElement dsid, Zp.ZpElement dsrnd, Zp.ZpElement value, PSSignature token) {
+		this.dsid = dsid;
 		this.dsrnd = dsrnd;
 		this.value = value;
 		this.token = token;

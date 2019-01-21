@@ -27,8 +27,10 @@ public class DeductInstance {
 	PSExtendedVerificationKey pk;
 	PSSigningKey sk;
 	Zp.ZpElement k;
-	GroupElement dsid;
 
+	Zp.ZpElement dsid;
+	Zp.ZpElement dsidIsrStar;
+	ElgamalCipherText cDsidStar;
 	Zp.ZpElement gamma;
 
 	PedersenCommitmentValue commitment;
@@ -44,13 +46,15 @@ public class DeductInstance {
 	Announcement[] rangeAnnouncements;
 	Challenge rangeChallenge;
 
-	public DeductInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PSSigningKey sk, Zp.ZpElement k, GroupElement dsid, Zp.ZpElement gamma) {
+	public DeductInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PSSigningKey sk, Zp.ZpElement k, Zp.ZpElement dsid, Zp.ZpElement dsidIsrStar, Zp.ZpElement gamma, ElgamalCipherText cDsidStar) {
 		this.pp = pp;
 		this.pk = pk;
 		this.sk = sk;
 		this.k = k;
 		this.dsid = dsid;
+		this.dsidIsrStar = dsidIsrStar;
 		this.gamma = gamma;
+		this.cDsidStar = cDsidStar;
 	}
 
 	/**
@@ -62,7 +66,7 @@ public class DeductInstance {
 	 * @param c
 	 *              linking value usk * gamma + dsrnd
 	 * @param ctrace
-	 *              elgamal encryption of dsidStar
+	 *              elgamal encryption of dsidInGroupStar
 	 * @param randToken
 	 *              randomized version of the token the points are spent from
 	 * @param schnorrAnnouncements
@@ -82,7 +86,7 @@ public class DeductInstance {
 		this.rangeAnnouncements = rangeAnnouncements;
 
 		// set up protocol
-		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrVerifierProtocol(this.pp, this.c, this.gamma, this.pk, this.randToken, this.k, this.ctrace, this.commitment, this.commitmentOnV);
+		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrVerifierProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentOnV, dsid, cDsidStar);
 		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeVerifierProtocol(rangePP);
 	}
 
