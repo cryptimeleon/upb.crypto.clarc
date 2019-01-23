@@ -60,6 +60,15 @@ public class EarnInstance {
 		return protocol.generateResponses(challenge);
 	}
 
+	/**
+	 * Computes the final output of earn. This includes unblinding the updated token and verifying its validity.
+	 *
+	 * @param blindedSig
+	 *          blinded, updated incentive token
+	 * @return
+	 *          unblinded updated token
+	 *
+	 */
 	public IncentiveToken earn(PSSignature blindedSig) {
 		PSExtendedSignatureScheme signatureScheme = new PSExtendedSignatureScheme(new PSPublicParameters(pp.group.getBilinearMap()));
 

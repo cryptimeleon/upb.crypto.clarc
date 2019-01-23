@@ -46,6 +46,14 @@ public class CreditInstance {
 		return this.ch;
 	}
 
+	/**
+	 * Updates the randomized token by {@link #k} points.
+	 *
+	 * @param responses
+	 *          responses of the ZKAK protocol
+	 * @return
+	 *      updated token
+	 */
 	public PSSignature credit(Response[] responses) {
 		if (this.ch == null) {
 			throw new IllegalStateException("Please run the ZKAK to completion first.");

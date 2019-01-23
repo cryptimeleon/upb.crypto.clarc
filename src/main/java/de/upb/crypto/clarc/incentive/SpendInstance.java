@@ -82,6 +82,15 @@ public class SpendInstance {
 		this.cUsrStar = cUsrStar;
 	}
 
+	/**
+	 * Initializes the ZKAK protocol after receiving dsid_isr*.
+	 * And prepares the second move of the spend algorithm.
+	 *
+	 * @param dsidIsrStar
+	 *          issuer double-spend id for the new token
+	 * @param gamma
+	 *          value used to enable linking
+	 */
 	public void initProtocol(Zp.ZpElement dsidIsrStar, Zp.ZpElement gamma) {
 		Group g1 = pp.group.getG1();
 		Zp zp = new Zp(g1.size());
@@ -159,6 +168,14 @@ public class SpendInstance {
 		return rangeProtocol.generateResponses(ch);
 	}
 
+	/**
+	 * Prepares the final output of Spend. If the signature computed with is valid, it outputs a token with v-k points.
+	 *
+	 * @param blindedSig
+	 *          blinded updated token issued by the provider running Deduct
+	 * @return
+	 *      updated token with value v-k, Dsid*
+	 */
 	public TokenDoubleSpendIdPair spend(PSSignature blindedSig) {
 		PSExtendedSignatureScheme psScheme = new PSExtendedSignatureScheme(new PSPublicParameters(pp.group.getBilinearMap()));
 		// unblind
