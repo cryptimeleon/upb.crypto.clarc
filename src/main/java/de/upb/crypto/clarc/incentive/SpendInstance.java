@@ -134,10 +134,10 @@ public class SpendInstance {
 		);
 
 		// commitment on value v for range proof using randomness rV
-		// C = g^{y_1 * v} * g^{rV} for rV in open value
+		// C = h^{v} * g^{rV} for rV in open value
 		PedersenPublicParameters pedersenPP2 = new PedersenPublicParameters(
-				pk.getGroup1ElementG(),
-				new GroupElement[]{pk.getGroup1ElementsYi()[0]},
+				pp.g,
+				new GroupElement[]{pp.h},
 				g1
 		);
 		PedersenCommitmentScheme pedersen2 = new PedersenCommitmentScheme(pedersenPP2);
@@ -149,7 +149,7 @@ public class SpendInstance {
 		// protocol
 		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentTokenValue, usk, dsid, token.dsrnd, dsidStar, dsrndStar, r, rC, rPrime, token.value, openStar, cDsidStar);
 
-		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeProverProtocol(pp, pk, commitmentVSubK, rV, (Zp.ZpElement) token.value.sub(k));
+		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeProverProtocol(pp, commitmentVSubK, rV, (Zp.ZpElement) token.value.sub(k));
 	}
 
 	public Announcement[] generateSchnorrAnnoucements() {

@@ -87,7 +87,8 @@ public class DeductInstance {
 
 		// set up protocol
 		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrVerifierProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentOnV, dsid, cDsidStar);
-		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeVerifierProtocol(rangePP);
+		// here we need a commitment on v-k
+		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeVerifierProtocol(pp, new PedersenCommitmentValue(commitmentOnV.getCommitmentElement().op(pp.h.pow(k.neg()))));
 	}
 
 	public void chooseChallenge() {

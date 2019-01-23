@@ -9,11 +9,8 @@ import de.upb.crypto.clarc.protocols.expressions.comparison.ArithComparisonExpre
 import de.upb.crypto.clarc.protocols.expressions.comparison.GroupElementEqualityExpression;
 import de.upb.crypto.clarc.protocols.generalizedschnorrprotocol.GeneralizedSchnorrProtocol;
 import de.upb.crypto.clarc.protocols.protocolfactory.GeneralizedSchnorrProtocolFactory;
-import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParameters;
-import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParametersGen;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentPair;
 import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentValue;
-import de.upb.crypto.craco.commitment.pedersen.PedersenPublicParameters;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
 import de.upb.crypto.craco.sig.ps.PSExtendedVerificationKey;
 import de.upb.crypto.craco.sig.ps.PSSignature;
@@ -23,7 +20,6 @@ import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.interfaces.structures.PowProductExpression;
 import de.upb.crypto.math.structures.zn.Zp;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -253,9 +249,9 @@ public class ZKAKProvider {
 		GroupElementEqualityExpression problem6b = getElgamalProblemB(cDsidStar.getC2(), gPPExpr, dsidStarVar, hExpr, openStarVar);
 
 		// problem 3: commitment on value is valid for v, needed for the range proof.
-		// cV = (g^{y1})^v * g^{rV}
+		// cV = (h)^v * g^{rV}
 		ArithGroupElementExpression cVExpr = new NumberGroupElementLiteral(commitmentOfValue.getCommitmentElement());
-		ProductGroupElementExpression rhs = new ProductGroupElementExpression(new PowerGroupElementExpression(gY1Expr, vVar), new PowerGroupElementExpression(gExpr, rVVar));
+		ProductGroupElementExpression rhs = new ProductGroupElementExpression(new PowerGroupElementExpression(hExpr, vVar), new PowerGroupElementExpression(gPPExpr, rVVar));
 		GroupElementEqualityExpression problem3 = new GroupElementEqualityExpression(cVExpr, rhs);
 
 		return new GeneralizedSchnorrProtocolFactory(
@@ -294,20 +290,18 @@ public class ZKAKProvider {
 	 * verifier, and the parameters generated in that way should be sent to the other party. In this application, the user/prover generates the protocol and sends
      * the parameters to the verifier
 	 */
-	static ZeroToUPowLRangeProofProtocolFactory getSpendDeductRangeProofProtocolFactory(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment) {
-		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), new GroupElement[] { pk.getGroup1ElementsYi()[0] }, pp.group.getG1());
-		Zp zp = new Zp(pp.group.getG1().size());
-
-		return new ZeroToUPowLRangeProofProtocolFactory(commitment, pedersenPP, BigInteger.valueOf(16), ((int) Math.log(Integer.MAX_VALUE)) / ((int) Math.log(16)),0, zp, pp.nguyenPP, "Spend/Deduct");
+	static ZeroToUPowLRangeProofProtocolFactory getSpendDeductRangeProofProtocolFactory(IncentiveSystemPublicParameters pp, PedersenCommitmentValue commitment) {
+		ZeroToUPowLRangeProofPublicParameters rangePP = pp.getSpendDeductRangePP(commitment.getCommitmentElement());
+		return new ZeroToUPowLRangeProofProtocolFactory(rangePP, "Spend/Deduct");
 	}
 
-	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeProverProtocol(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment, Zp.ZpElement commitmentRandomness, Zp.ZpElement committedValue) {
-		ZeroToUPowLRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, pk, commitment);
+	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeProverProtocol(IncentiveSystemPublicParameters pp, PedersenCommitmentValue commitment, Zp.ZpElement commitmentRandomness, Zp.ZpElement committedValue) {
+		ZeroToUPowLRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, commitment);
 
 		return rangeFac.getProverProtocol(commitmentRandomness, committedValue);
 	}
-	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeVerifierProtocol(ZeroToUPowLRangeProofPublicParameters rangePP) {
-		ZeroToUPowLRangeProofProtocolFactory rangeFac = new ZeroToUPowLRangeProofProtocolFactory(rangePP, "Spend/Deduct");
+	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeVerifierProtocol(IncentiveSystemPublicParameters pp, PedersenCommitmentValue commitment) {
+		ZeroToUPowLRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, commitment);
 		return rangeFac.getVerifierProtocol();
 	}
 

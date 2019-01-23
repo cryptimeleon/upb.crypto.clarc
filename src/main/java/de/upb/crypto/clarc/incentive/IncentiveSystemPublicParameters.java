@@ -1,6 +1,8 @@
 package de.upb.crypto.clarc.incentive;
 
+import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofPublicParameters;
 import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParameters;
+import de.upb.crypto.craco.commitment.interfaces.CommitmentValue;
 import de.upb.crypto.math.factory.BilinearGroup;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 
@@ -20,12 +22,19 @@ public class IncentiveSystemPublicParameters {
 
 	NguyenAccumulatorPublicParameters nguyenPP;
 
-	public IncentiveSystemPublicParameters(BilinearGroup group, GroupElement w, GroupElement h, GroupElement g, BigInteger maxValue, NguyenAccumulatorPublicParameters nguyenPP) {
+	private ZeroToUPowLRangeProofPublicParameters spendDeductRangePP;
+
+	public IncentiveSystemPublicParameters(BilinearGroup group, GroupElement w, GroupElement h, GroupElement g, BigInteger maxValue, NguyenAccumulatorPublicParameters nguyenPP, ZeroToUPowLRangeProofPublicParameters spendDeductRangePP) {
 		this.group = group;
 		this.w = w;
 		this.maxValue = maxValue;
 		this.g = g;
 		this.h = h;
 		this.nguyenPP = nguyenPP;
+		this.spendDeductRangePP = spendDeductRangePP;
+	}
+
+	public ZeroToUPowLRangeProofPublicParameters getSpendDeductRangePP(GroupElement commitment) {
+		return new ZeroToUPowLRangeProofPublicParameters(spendDeductRangePP, commitment);
 	}
 }
