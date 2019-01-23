@@ -295,13 +295,10 @@ public class ZKAKProvider {
      * the parameters to the verifier
 	 */
 	static ZeroToUPowLRangeProofProtocolFactory getSpendDeductRangeProofProtocolFactory(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment) {
-		NguyenAccumulatorPublicParametersGen nguyenGen = new NguyenAccumulatorPublicParametersGen();
-		NguyenAccumulatorPublicParameters nguyenPP = nguyenGen.setup(pp.group.getBilinearMap(), 100);
-
 		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), new GroupElement[] { pk.getGroup1ElementsYi()[0] }, pp.group.getG1());
 		Zp zp = new Zp(pp.group.getG1().size());
 
-		return new ZeroToUPowLRangeProofProtocolFactory(commitment, pedersenPP, BigInteger.valueOf(16), ((int) Math.log(Integer.MAX_VALUE)) / ((int) Math.log(16)),0, zp, nguyenPP, "Spend/Deduct");
+		return new ZeroToUPowLRangeProofProtocolFactory(commitment, pedersenPP, BigInteger.valueOf(16), ((int) Math.log(Integer.MAX_VALUE)) / ((int) Math.log(16)),0, zp, pp.nguyenPP, "Spend/Deduct");
 	}
 
 	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeProverProtocol(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PedersenCommitmentValue commitment, Zp.ZpElement commitmentRandomness, Zp.ZpElement committedValue) {

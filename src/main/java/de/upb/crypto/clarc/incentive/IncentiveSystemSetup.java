@@ -1,5 +1,7 @@
 package de.upb.crypto.clarc.incentive;
 
+import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParameters;
+import de.upb.crypto.craco.accumulators.nguyen.NguyenAccumulatorPublicParametersGen;
 import de.upb.crypto.math.factory.BilinearGroup;
 import de.upb.crypto.math.factory.BilinearGroupFactory;
 import de.upb.crypto.math.interfaces.structures.Group;
@@ -26,6 +28,9 @@ public class IncentiveSystemSetup {
 		GroupElement g = g1.getUniformlyRandomElement();
 		GroupElement h = g1.getUniformlyRandomElement();
 
-		return new IncentiveSystemPublicParameters(group, w, h, g, vMax);
+		NguyenAccumulatorPublicParametersGen nguyenGen = new NguyenAccumulatorPublicParametersGen();
+		NguyenAccumulatorPublicParameters nguyenPP = nguyenGen.setup(group.getBilinearMap(), 100);
+
+		return new IncentiveSystemPublicParameters(group, w, h, g, vMax, nguyenPP);
 	}
 }
