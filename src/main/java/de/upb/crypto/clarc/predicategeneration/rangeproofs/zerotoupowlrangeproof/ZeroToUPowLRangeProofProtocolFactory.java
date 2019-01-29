@@ -34,7 +34,7 @@ public class ZeroToUPowLRangeProofProtocolFactory {
         GroupElement g2 = pedersenPP.getG();
 
         // Verify given base against public Nguyen accumulator parameters
-        if (base.compareTo(accumulatorPP.getUpperBoundForAccumulatableIdentities()) >= 0) {
+        if (base.signum() < 1 || base.compareTo(accumulatorPP.getUpperBoundForAccumulatableIdentities()) >= 0) {
             throw new IllegalArgumentException("The base is invalid and does not match the" +
                     " precomputed NguyenAccumulator");
         }

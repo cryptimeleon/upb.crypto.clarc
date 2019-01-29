@@ -34,14 +34,15 @@ public class IncentiveSystemSetup {
 		GroupElement g = g1.getUniformlyRandomElement();
 		GroupElement h = g1.getUniformlyRandomElement();
 
+		int baseRangeProof = 32;
 		NguyenAccumulatorPublicParametersGen nguyenGen = new NguyenAccumulatorPublicParametersGen();
-		NguyenAccumulatorPublicParameters nguyenPP = nguyenGen.setup(group.getBilinearMap(), 100);
+		NguyenAccumulatorPublicParameters nguyenPP = nguyenGen.setup(group.getBilinearMap(), baseRangeProof+1);
 
 		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(g, new GroupElement[] { h }, g1);
 		Zp zp = new Zp(group.getG1().size());
 		PedersenCommitmentScheme pedersen = new PedersenCommitmentScheme(pedersenPP);
 
-		ZeroToUPowLRangeProofPublicParameters spendDeductRangePP = new ZeroToUPowLRangeProofProtocolFactory(pedersen.commit(new RingElementPlainText(zp.getZeroElement())).getCommitmentValue(), pedersenPP, BigInteger.valueOf(16), ((int) Math.log(Integer.MAX_VALUE)) / ((int) Math.log(16)), 0, zp, nguyenPP, "Spend/Deduct").getVerifierProtocol().getPublicParameters();
+		ZeroToUPowLRangeProofPublicParameters spendDeductRangePP = new ZeroToUPowLRangeProofProtocolFactory(pedersen.commit(new RingElementPlainText(zp.getZeroElement())).getCommitmentValue(), pedersenPP, BigInteger.valueOf(baseRangeProof), Math.max(1, (int) (32) / ((int) Math.log(baseRangeProof))), 0, zp, nguyenPP, "Spend/Deduct").getVerifierProtocol().getPublicParameters();
 
 		return new IncentiveSystemPublicParameters(group, w, h, g, vMax, nguyenPP, spendDeductRangePP);
 	}

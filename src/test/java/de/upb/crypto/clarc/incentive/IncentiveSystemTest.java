@@ -42,13 +42,13 @@ public class IncentiveSystemTest {
 	protected long timerStart = 0;
 	long timerStarUser = 0;
 	long timerStartProvider = 0;
-	private int maxIterations = 1;
+	private int maxIterations = 100;
 
 	@Before
 	public void setup() {
 		// measureTime(null);
 		IncentiveSystemSetup setup = new IncentiveSystemSetup();
-		this.pp = setup.generatePublicParameter(80);
+		this.pp = setup.generatePublicParameter(256);
 		// measureTime("System setup");
 
 		this.zp = new Zp(pp.group.getG1().size());
@@ -258,8 +258,8 @@ public class IncentiveSystemTest {
 			issueTimer.reset();
 		}
 		System.out.println("AVG timing for protocol Issue/Receive over " + maxIterations + " runs:");
-		System.out.println("Receive: " + ((double) receiveAcc) / 1E9);
-		System.out.println("Issue: " + ((double) issueAcc) / 1E9);
+		System.out.println("Receive: " + ((double) receiveAcc) / maxIterations / 1E9);
+		System.out.println("Issue: " + ((double) issueAcc) / maxIterations / 1E9);
 		System.out.println();
 	}
 
@@ -306,8 +306,8 @@ public class IncentiveSystemTest {
 			creditTimer.reset();
 		}
 		System.out.println("AVG timing for protocol Credit/Earn over " + maxIterations + " runs:");
-		System.out.println("Earn: " + ((double) earnAcc) / 1E9);
-		System.out.println("Credit: " + ((double) creditAcc) / 1E9);
+		System.out.println("Earn: " + ((double) earnAcc) / maxIterations / 1E9);
+		System.out.println("Credit: " + ((double) creditAcc) / maxIterations / 1E9);
 		System.out.println();
 	}
 
@@ -368,8 +368,8 @@ public class IncentiveSystemTest {
 			deductTimer.reset();
 		}
 		System.out.println("AVG timing for protocol Spend/Deduct over " + maxIterations + " runs:");
-		System.out.println("Spend: " + ((double) spendAcc) / 1E9);
-		System.out.println("Deduct: " + ((double) deductAcc) / 1E9);
+		System.out.println("Spend: " + ((double) spendAcc) / maxIterations /  1E9);
+		System.out.println("Deduct: " + ((double) deductAcc) / maxIterations / 1E9);
 		System.out.println();
 	}
 }
