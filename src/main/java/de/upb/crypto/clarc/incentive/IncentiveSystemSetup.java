@@ -11,9 +11,12 @@ import de.upb.crypto.math.factory.BilinearGroup;
 import de.upb.crypto.math.factory.BilinearGroupFactory;
 import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
+import de.upb.crypto.math.pairings.eccelerate.ECCelerateBilinearGroupProvider;
+import de.upb.crypto.math.pairings.mcl.MclBilinearGroupProvider;
 import de.upb.crypto.math.structures.zn.Zp;
 
 import java.math.BigInteger;
+import java.util.Collections;
 
 /**
  * Setup of the incentive system.
@@ -23,6 +26,7 @@ public class IncentiveSystemSetup {
 	public IncentiveSystemPublicParameters generatePublicParameter(int securityParameter) {
 		BilinearGroupFactory fac = new BilinearGroupFactory(securityParameter);
 		fac.setRequirements(BilinearGroup.Type.TYPE_3);
+		fac.registerProvider(Collections.singletonList(new MclBilinearGroupProvider()));
 		BilinearGroup group = fac.createBilinearGroup();
 
 		Group g1 = group.getG1();

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'de.upb.crypto.clarc'
-version = '1.1.0' + (Boolean.valueOf(System.getProperty("snapshot")) ? "-SNAPSHOT" : "")
+version = '1.1.2' + (Boolean.valueOf(System.getProperty("snapshot")) ? "-SNAPSHOT" : "")
 
 description = """"""
 
@@ -34,6 +34,9 @@ dependencies {
     api group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0'
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
+    implementation group: 'de.upb.crypto', name: 'mclwrap', version: '0.0.2-SNAPSHOT'
+    implementation group: 'de.upb.crypto', name: 'ecceleratewrap', version: '1.0.0-SNAPSHOT'
+
     implementation 'com.google.guava:guava:23.0'
     implementation group: 'com.google.code.findbugs', name: 'annotations', version: '2.0.1'
     implementation group: 'log4j', name: 'log4j', version: '1.2.12'
