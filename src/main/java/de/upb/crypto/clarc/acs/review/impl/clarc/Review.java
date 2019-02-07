@@ -25,7 +25,7 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
     private Item item;
     private PSExtendedVerificationKey systemManagerPublicKey;
     private GroupElement linkabilityBasis;
-    private PSExtendedVerificationKey raterPublicKey;
+    private PSExtendedVerificationKey reviewTokenIssuerPublicKey;
     private PSSignature blindedRegistrationInformation;
     private PSSignature blindedTokenSignature;
     private FiatShamirSignature ratingSignature;
@@ -39,7 +39,7 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
      * @param item                           Item the review was created for
      * @param systemManagerPublicKey         Public key of the system Manager
      * @param linkabilityBasis               Group element used for every rating to link them
-     * @param raterPublicKey                 Public key of ReviewVerifier
+     * @param reviewTokenIssuerPublicKey     Public key of review token issuer
      * @param blindedRegistrationInformation Credential obtained after joining the system (blinded)
      * @param blindedTokenSignature          Signature obtained from token issuing/receiving protocol (blinded)
      * @param ratingSignature                Signature obtained from rate algorithm
@@ -50,7 +50,7 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
                   Item item,
                   PSExtendedVerificationKey systemManagerPublicKey,
                   GroupElement linkabilityBasis,
-                  PSExtendedVerificationKey raterPublicKey,
+                  PSExtendedVerificationKey reviewTokenIssuerPublicKey,
                   PSSignature blindedRegistrationInformation,
                   PSSignature blindedTokenSignature,
                   FiatShamirSignature ratingSignature,
@@ -60,7 +60,7 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
         this.item = item;
         this.systemManagerPublicKey = systemManagerPublicKey;
         this.linkabilityBasis = linkabilityBasis;
-        this.raterPublicKey = raterPublicKey;
+        this.reviewTokenIssuerPublicKey = reviewTokenIssuerPublicKey;
         this.blindedRegistrationInformation = blindedRegistrationInformation;
         this.blindedTokenSignature = blindedTokenSignature;
         this.ratingSignature = ratingSignature;
@@ -75,7 +75,7 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
         Group g2 = clarcPP.getBilinearMap().getG2();
         systemManagerPublicKey = new PSExtendedVerificationKey(g1, g2, representation.obj().get("systemManagerPublicKey"));
         linkabilityBasis = g2.getElement(representation.obj().get("linkabilityBasis"));
-        raterPublicKey = new PSExtendedVerificationKey(g1, g2, representation.obj().get("raterPublicKey"));
+        reviewTokenIssuerPublicKey = new PSExtendedVerificationKey(g1, g2, representation.obj().get("reviewTokenIssuerPublicKey"));
         blindedRegistrationInformation =
                 new PSSignature(representation.obj().get("blindedRegistrationInformation"), g1);
         blindedTokenSignature = new PSSignature(representation.obj().get("blindedTokenSignature"), g1);
@@ -89,7 +89,7 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
         ObjectRepresentation object = AnnotatedRepresentationUtil.putAnnotatedRepresentation(this);
         object.put("systemManagerPublicKey", systemManagerPublicKey.getRepresentation());
         object.put("linkabilityBasis", linkabilityBasis.getRepresentation());
-        object.put("raterPublicKey", raterPublicKey.getRepresentation());
+        object.put("reviewTokenIssuerPublicKey", reviewTokenIssuerPublicKey.getRepresentation());
         object.put("blindedRegistrationInformation", blindedRegistrationInformation.getRepresentation());
         object.put("blindedTokenSignature", blindedTokenSignature.getRepresentation());
         object.put("ratingSignature", ratingSignature.getRepresentation());
@@ -114,8 +114,8 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
         return linkabilityBasis;
     }
 
-    public PSExtendedVerificationKey getRaterPublicKey() {
-        return raterPublicKey;
+    public PSExtendedVerificationKey getReviewTokenIssuerPublicKey() {
+        return reviewTokenIssuerPublicKey;
     }
 
     public PSSignature getBlindedRegistrationInformation() {
@@ -147,7 +147,7 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
                 Objects.equals(item, that.item) &&
                 Objects.equals(systemManagerPublicKey, that.systemManagerPublicKey) &&
                 Objects.equals(linkabilityBasis, that.linkabilityBasis) &&
-                Objects.equals(raterPublicKey, that.raterPublicKey) &&
+                Objects.equals(reviewTokenIssuerPublicKey, that.reviewTokenIssuerPublicKey) &&
                 Objects.equals(blindedRegistrationInformation, that.blindedRegistrationInformation) &&
                 Objects.equals(blindedTokenSignature, that.blindedTokenSignature) &&
                 Objects.equals(ratingSignature, that.ratingSignature) &&
@@ -158,7 +158,7 @@ public class Review implements de.upb.crypto.clarc.acs.review.Review {
     @Override
     public int hashCode() {
         return Objects
-                .hash(message, item, systemManagerPublicKey, linkabilityBasis, raterPublicKey,
+                .hash(message, item, systemManagerPublicKey, linkabilityBasis, reviewTokenIssuerPublicKey,
                         blindedRegistrationInformation, blindedTokenSignature, ratingSignature, L1, L2);
     }
 }
