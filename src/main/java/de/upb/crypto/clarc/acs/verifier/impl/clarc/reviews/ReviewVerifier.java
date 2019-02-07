@@ -148,7 +148,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
         ReviewToken token = new ReviewToken(
                                 review.getBlindedTokenSignature(),
                                 review.getItem(),
-                reviewTokenIssuerPublicKey
+                                reviewTokenIssuerPublicKey
                             );
 
         GroupElement hash = getHashedRatingPublicKeyAndItem(token, pp);
