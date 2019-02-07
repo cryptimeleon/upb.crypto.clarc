@@ -30,7 +30,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
     private PublicParameters pp;
     private SystemManagerPublicIdentity systemManagerPublicIdentity;
 
-    private PSExtendedVerificationKey raterPublicKey;
+    private PSExtendedVerificationKey reviewTokenIssuerPublicKey;
 
     /**
      * Initializes The ReviewVerifier with the linkability basis from the SystemManager
@@ -48,7 +48,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
         this.systemManagerPublicIdentity = systemManagerPublicIdentity;
 
         PSExtendedSignatureScheme signatureScheme = PublicParametersFactory.getSignatureScheme(pp);
-        this.raterPublicKey = signatureScheme.getVerificationKey(reviewTokenIssuerPublicIdentity.getIssuerPublicKey());
+        this.reviewTokenIssuerPublicKey = signatureScheme.getVerificationKey(reviewTokenIssuerPublicIdentity.getIssuerPublicKey());
     }
 
     /**
@@ -79,7 +79,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
         ReviewToken token = new ReviewToken(
                 ((Review) review1).getBlindedTokenSignature(),
                 ((Review) review1).getItem(),
-                raterPublicKey);
+                reviewTokenIssuerPublicKey);
 
         GroupElement hash = getHashedRatingPublicKeyAndItem(token, pp);
 
@@ -103,7 +103,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
 
         ReviewToken token = new ReviewToken(clarcReview.getBlindedTokenSignature(),
                 clarcReview.getItem(),
-                clarcReview.getRaterPublicKey());
+                clarcReview.getReviewTokenIssuerPublicKey());
         RateVerifyProtocolFactory factory = new RateVerifyProtocolFactory(pp,
                 clarcReview.getBlindedRegistrationInformation(),
                 clarcReview.getSystemManagerPublicKey(),
@@ -148,7 +148,7 @@ public class ReviewVerifier implements de.upb.crypto.clarc.acs.verifier.reviews.
         ReviewToken token = new ReviewToken(
                                 review.getBlindedTokenSignature(),
                                 review.getItem(),
-                                raterPublicKey
+                                reviewTokenIssuerPublicKey
                             );
 
         GroupElement hash = getHashedRatingPublicKeyAndItem(token, pp);
