@@ -5,17 +5,18 @@ import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
 import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.clarc.protocols.parameters.Challenge;
 import de.upb.crypto.clarc.protocols.parameters.Response;
-import de.upb.crypto.clarc.utils.Stopwatch;
 import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.common.RingElementPlainText;
 import de.upb.crypto.craco.sig.ps.*;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
-import de.upb.crypto.math.pairings.debug.DebugBilinearMap;
-import de.upb.crypto.math.pairings.debug.DebugGroupLogger;
+import de.upb.crypto.math.serialization.ListRepresentation;
+import de.upb.crypto.math.serialization.ObjectRepresentation;
+import de.upb.crypto.math.serialization.Representable;
 import de.upb.crypto.math.structures.zn.Zp;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -142,12 +143,30 @@ public class IncentiveSystemTest {
 	}
 
 	TokenDoubleSpendIdPair spendDeduct(Zp zp, IncentiveUser user, IncentiveProvider provider, PSExtendedVerificationKey pk, Zp.ZpElement userDoubleSpendID, IncentiveToken updatedToken, int pointsSpent) {
+		long sizeOfMsgSent = 0;
 		// assumption: points k1 spent & double spend id known to both parties
 		Zp.ZpElement k1 = zp.valueOf(pointsSpent);
 
 		SpendInstance spendInstance = user.initSpend(pk, k1, userDoubleSpendID, updatedToken);
 
+		// 1st message to provider
+		ObjectRepresentation msg1Repr = new ObjectRepresentation();
+		msg1Repr.put("k1", k1.getRepresentation());
+		msg1Repr.put("userDoubleSpendID", userDoubleSpendID.getRepresentation());
+		msg1Repr.put("cUsrStar", spendInstance.cUsrStar.getRepresentation());
+		String msg1 = msg1Repr.toString();
+
+		sizeOfMsgSent += msg1.getBytes().length;
+
 		DeductInstance deductInstance = provider.initDeduct(k1, userDoubleSpendID, spendInstance.cUsrStar);
+
+		// 2nd message to user
+		ObjectRepresentation msg2Repr = new ObjectRepresentation();
+		msg2Repr.put("dsidIsrStar", deductInstance.dsidIsrStar.getRepresentation());
+		msg2Repr.put("gamma", deductInstance.gamma.getRepresentation());
+		String msg2 = msg2Repr.toString();
+
+		sizeOfMsgSent += msg2.getBytes().length;
 
 		spendInstance.initProtocol(deductInstance.dsidIsrStar, deductInstance.gamma);
 		SigmaProtocol rangeProtocol = spendInstance.rangeProtocol;
@@ -155,13 +174,50 @@ public class IncentiveSystemTest {
 		ZeroToUPowLRangeProofPublicParameters rangePP = (ZeroToUPowLRangeProofPublicParameters) rangeProtocol.getPublicParameters();
 		Announcement[] rangeAnnouncements = rangeProtocol.generateAnnouncements();
 
+
+		// 3rd message to provider
+		ObjectRepresentation msg3Repr = new ObjectRepresentation();
+		msg3Repr.put("commitment", spendInstance.commitment.getRepresentation());
+		msg3Repr.put("commitmentOnValue", spendInstance.commitmentOnValue.getRepresentation());
+		msg3Repr.put("c", spendInstance.c.getRepresentation());
+		msg3Repr.put("ctrace", spendInstance.ctrace.getRepresentation());
+		msg3Repr.put("schnorrAnnouncements", new ListRepresentation(Arrays.stream(schnorrAnnouncements).map(Representable::getRepresentation).collect(Collectors.toList())));
+		msg3Repr.put("rangePP", rangePP.getRepresentation());
+		msg3Repr.put("rangeAnnouncements", new ListRepresentation(Arrays.stream(rangeAnnouncements).map(Representable::getRepresentation).collect(Collectors.toList())));
+		String msg3 = msg3Repr.toString();
+
+		sizeOfMsgSent += msg3.getBytes().length;
+
 		deductInstance.initProtocol(spendInstance.commitment, spendInstance.commitmentOnValue, spendInstance.c, spendInstance.ctrace, spendInstance.randToken, schnorrAnnouncements, rangePP, rangeAnnouncements);
 		deductInstance.chooseChallenge();
+
+		// 4th message to user
+		ObjectRepresentation msg4Repr = new ObjectRepresentation();
+		msg4Repr.put("schnorrChallenge", deductInstance.schnorrChallenge.getRepresentation());
+		msg4Repr.put("rangeChallenge", deductInstance.rangeChallenge.getRepresentation());
+		String msg4 = msg4Repr.toString();
+
+		sizeOfMsgSent += msg4.getBytes().length;
 
 		Response[] schnorrResponses = spendInstance.generateSchnorrResponses(deductInstance.schnorrChallenge);
 		Response[] rangeResponses = spendInstance.generateRangeResponses(deductInstance.rangeChallenge);
 
+		ObjectRepresentation msg5Repr = new ObjectRepresentation();
+		msg5Repr.put("schnorrResponses", new ListRepresentation(Arrays.stream(schnorrResponses).map(Representable::getRepresentation).collect(Collectors.toList())));
+		msg5Repr.put("rangeResponses", new ListRepresentation(Arrays.stream(rangeResponses).map(Representable::getRepresentation).collect(Collectors.toList())));
+		String msg5 = msg5Repr.toString();
+
+		sizeOfMsgSent += msg5.getBytes().length;
+
 		DeductOutput deduct = deductInstance.deduct(schnorrResponses, rangeResponses);
+
+		ObjectRepresentation msg6Repr = new ObjectRepresentation();
+		msg6Repr.put("issuedSignature", deduct.issuedSignature.getRepresentation());
+		String msg6 = msg6Repr.toString();
+
+		sizeOfMsgSent += msg6.getBytes().length;
+
+		System.out.println("Network traffic: " + sizeOfMsgSent / 1000);
 
 		TokenDoubleSpendIdPair spend = spendInstance.spend(deduct.issuedSignature);
 

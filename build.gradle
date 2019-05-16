@@ -35,7 +35,7 @@ dependencies {
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation group: 'de.upb.crypto', name: 'mclwrap', version: '0.0.2-SNAPSHOT'
-    implementation group: 'de.upb.crypto', name: 'ecceleratewrap', version: '1.0.0-SNAPSHOT'
+//    implementation group: 'de.upb.crypto', name: 'ecceleratewrap', version: '1.0.0-SNAPSHOT'
 
     implementation 'com.google.guava:guava:23.0'
     implementation group: 'com.google.code.findbugs', name: 'annotations', version: '2.0.1'
