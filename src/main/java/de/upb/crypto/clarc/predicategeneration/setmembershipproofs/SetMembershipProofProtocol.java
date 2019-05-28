@@ -123,7 +123,7 @@ public class SetMembershipProofProtocol extends SigmaProtocol {
 
         /* Note: The value of W is currently set to the neutral element of G2. THis is an invalid value, thus the
          verification will fail if tried with this value for w. It cannot be set to the actual value of w, since
-         the verifier will receive w in the verify-phase */
+         the verifier will join w in the verify-phase */
         this.w = setPP.getG2().getStructure().getNeutralElement();
 
         final GeneralizedSchnorrProtocolFactory factory;

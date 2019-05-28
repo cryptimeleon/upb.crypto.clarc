@@ -357,7 +357,7 @@ public class User implements de.upb.crypto.clarc.acs.user.User<PSCredential, Rep
             de.upb.crypto.clarc.acs.user.credentials.InteractiveRequestCredentialProcess issuanceProcess,
             IssueResponse<PSCredential> issueResponse) {
         if (issueResponse == null) {
-            throw new IllegalStateException("Interactive issuing failed, unable to receive credential");
+            throw new IllegalStateException("Interactive issuing failed, unable to join credential");
         }
         if (!(issuanceProcess instanceof InteractiveRequestCredentialProcess)) {
             throw new IllegalArgumentException("Unsupported process type");
@@ -371,7 +371,7 @@ public class User implements de.upb.crypto.clarc.acs.user.User<PSCredential, Rep
             de.upb.crypto.clarc.acs.user.credentials.CredentialNonInteractiveResponseHandler responseHandler,
             IssueResponse<PSCredential> issueResponse) {
         if (issueResponse == null) {
-            throw new IllegalStateException("Non-interactive issuing failed, unable to receive credential");
+            throw new IllegalStateException("Non-interactive issuing failed, unable to join credential");
         }
         if (!(responseHandler instanceof CredentialNonInteractiveResponseHandler)) {
             throw new IllegalArgumentException("Unsupported process type");
@@ -386,7 +386,7 @@ public class User implements de.upb.crypto.clarc.acs.user.User<PSCredential, Rep
             de.upb.crypto.clarc.acs.user.reviewtokens.InteractiveRequestReviewTokenProcess requestReviewTokenProcess,
             IssueResponse<RepresentableReviewToken> issueResponse) {
         if (issueResponse == null) {
-            throw new IllegalStateException("Interactive issuing failed, unable to receive review token");
+            throw new IllegalStateException("Interactive issuing failed, unable to join review token");
         }
         if (!(requestReviewTokenProcess instanceof InteractiveRequestReviewTokenProcess)) {
             throw new IllegalArgumentException("Unsupported process type");
@@ -400,7 +400,7 @@ public class User implements de.upb.crypto.clarc.acs.user.User<PSCredential, Rep
     public void receiveReviewTokenNonInteractively(ReviewTokeIssueanceState request,
                                                    IssueResponse<RepresentableReviewToken> issueResponse) {
         if (issueResponse == null) {
-            throw new IllegalStateException("Non-interactive issuing failed, unable to receive review token");
+            throw new IllegalStateException("Non-interactive issuing failed, unable to join review token");
         }
         if (!(request instanceof ReviewTokenNonInteractiveResponseHandler)) {
             throw new IllegalArgumentException("Unsupported process type");
