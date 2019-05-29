@@ -15,7 +15,8 @@ import java.util.Arrays;
 public class IncentiveProviderSetup {
 
 	public IncentiveProviderKeyPair generateProviderKeys(IncentiveSystemPublicParameters pp) {
-		SPSEQSignatureScheme spseqSignatureScheme = new SPSEQSignatureScheme(new SPSEQPublicParameters(pp.group.getBilinearMap()));
+		SPSEQPublicParameters spseqPublicParameters = new SPSEQPublicParameters(pp.group.getBilinearMap());
+		SPSEQSignatureScheme spseqSignatureScheme = new SPSEQSignatureScheme(spseqPublicParameters);
 
 
 		// sps eq key pair
@@ -48,6 +49,6 @@ public class IncentiveProviderSetup {
 		//PedersenCommitmentScheme pedersenCommitmentScheme = new PedersenCommitmentScheme(new PedersenPublicParameters(pp.g1,h1to6,pp.group.getG1()));
 
 
-		return new IncentiveProviderKeyPair(signatureKeyPair.getVerificationKey(), signatureKeyPair.getSigningKey(), spsSignatureKeyPair.getSigningKey(), spsSignatureKeyPair.getVerificationKey(),h1to6, q);
+		return new IncentiveProviderKeyPair(signatureKeyPair.getVerificationKey(), signatureKeyPair.getSigningKey(), spsSignatureKeyPair.getSigningKey(), spsSignatureKeyPair.getVerificationKey(), spseqPublicParameters,h1to6, q);
 	}
 }

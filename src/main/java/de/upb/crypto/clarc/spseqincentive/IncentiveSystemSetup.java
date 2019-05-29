@@ -11,7 +11,6 @@ import de.upb.crypto.math.factory.BilinearGroup;
 import de.upb.crypto.math.factory.BilinearGroupFactory;
 import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
-import de.upb.crypto.math.pairings.eccelerate.ECCelerateBilinearGroupProvider;
 import de.upb.crypto.math.pairings.mcl.MclBilinearGroupProvider;
 import de.upb.crypto.math.structures.zn.Zp;
 
@@ -29,25 +28,25 @@ public class IncentiveSystemSetup {
 		fac.registerProvider(Collections.singletonList(new MclBilinearGroupProvider()));
 		BilinearGroup group = fac.createBilinearGroup();
 
-		Group g1 = group.getG1();
+		Group groupG1 = group.getG1();
 		// w <- G1
-		GroupElement w = g1.getUniformlyRandomElement();
+		GroupElement w = groupG1.getUniformlyRandomNonNeutral();
 		// vMax = p-1
-		BigInteger vMax = g1.size().subtract(BigInteger.ONE);
+		BigInteger vMax = groupG1.size().subtract(BigInteger.ONE);
 		// g1,h7 <- G1
-		GroupElement h0 = g1.getUniformlyRandomElement();
-		GroupElement h7 = g1.getUniformlyRandomElement();
+		GroupElement g1 = groupG1.getUniformlyRandomNonNeutral();
+		GroupElement h7 = groupG1.getUniformlyRandomNonNeutral();
 
 		int baseRangeProof = 32;
 		NguyenAccumulatorPublicParametersGen nguyenGen = new NguyenAccumulatorPublicParametersGen();
 		NguyenAccumulatorPublicParameters nguyenPP = nguyenGen.setup(group.getBilinearMap(), baseRangeProof+1);
 
-		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(h0, new GroupElement[] { h7 }, g1);
+		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(g1, new GroupElement[] { h7 }, groupG1);
 		Zp zp = new Zp(group.getG1().size());
 		PedersenCommitmentScheme pedersen = new PedersenCommitmentScheme(pedersenPP);
 
 		ZeroToUPowLRangeProofPublicParameters spendDeductRangePP = new ZeroToUPowLRangeProofProtocolFactory(pedersen.commit(new RingElementPlainText(zp.getZeroElement())).getCommitmentValue(), pedersenPP, BigInteger.valueOf(baseRangeProof), Math.max(1, (int) (32) / ((int) Math.log(baseRangeProof))), 0, zp, nguyenPP, "Spend/Deduct").getVerifierProtocol().getPublicParameters();
 
-		return new IncentiveSystemPublicParameters(group, w, h7, h0, vMax, nguyenPP, spendDeductRangePP);
+		return new IncentiveSystemPublicParameters(group, w, h7, g1, vMax, nguyenPP, spendDeductRangePP);
 	}
 }

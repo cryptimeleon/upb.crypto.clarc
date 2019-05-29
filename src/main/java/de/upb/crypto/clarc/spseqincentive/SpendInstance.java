@@ -35,7 +35,7 @@ import java.util.stream.Stream;
  *  3. {@link #generateSchnorrResponses(Challenge)}
  *  4. {@link #generateRangeAnnoucements()}
  *  3. {@link #spend(PSSignature)} (PSSignature)}
- * After {@link #spend(PSSignature)} was run, the prover should have obtained an updated token for a new double-spend id.
+ * After {@link #spend(PSSignature)} was run, the prover should have obtained an updated spseqSignature for a new double-spend id.
  */
 public class SpendInstance {
 	IncentiveSystemPublicParameters pp;
@@ -87,11 +87,12 @@ public class SpendInstance {
 	 * And prepares the second move of the spend algorithm.
 	 *
 	 * @param dsidIsrStar
-	 *          issuer double-spend id for the new token
+	 *          issuer double-spend id for the new spseqSignature
 	 * @param gamma
 	 *          value used to enable linking
 	 */
 	public void initProtocol(Zp.ZpElement dsidIsrStar, Zp.ZpElement gamma) {
+		/*
 		Group g1 = pp.group.getG1();
 		Zp zp = new Zp(g1.size());
 
@@ -123,11 +124,12 @@ public class SpendInstance {
 		Zp.ZpElement r = zp.getUniformlyRandomElement();
 		this.ctrace = (ElgamalCipherText) elgamal.encrypt(new ElgamalPlainText(dsidInGroupStar), encKey, r.getInteger());
 
-		// randomize token signature sigma -> sigma'
+		// randomize spseqSignature signature sigma -> sigma'
 		Zp.ZpElement r2Prime = zp.getUniformlyRandomUnit();
 		Zp.ZpElement rPrime = zp.getUniformlyRandomElement();
-		GroupElement sigma0 = token.token.getGroup1ElementSigma1();
-		GroupElement sigma1 = token.token.getGroup1ElementSigma2();
+
+		GroupElement sigma0 = token.spseqSignature.getGroup1ElementSigma1();
+		GroupElement sigma1 = token.spseqSignature.getGroup1ElementSigma2();
 		this.randToken = new PSSignature(
 				sigma0.asPowProductExpression().pow(r2Prime).evaluate(),
 				sigma1.asPowProductExpression().op(sigma0, rPrime).pow(r2Prime).evaluate()
@@ -150,6 +152,7 @@ public class SpendInstance {
 		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentTokenValue, usk, dsid, token.dsrnd, dsidStar, dsrndStar, r, rC, rPrime, token.value, openStar, cDsidStar);
 
 		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeProverProtocol(pp, commitmentVSubK, rV, (Zp.ZpElement) token.value.sub(k));
+		*/
 	}
 
 	public Announcement[] generateSchnorrAnnoucements() {
@@ -169,12 +172,12 @@ public class SpendInstance {
 	}
 
 	/**
-	 * Prepares the final output of Spend. If the signature computed with is valid, it outputs a token with v-k points.
+	 * Prepares the final output of Spend. If the signature computed with is valid, it outputs a spseqSignature with v-k points.
 	 *
 	 * @param blindedSig
-	 *          blinded updated token issued by the provider running Deduct
+	 *          blinded updated spseqSignature issued by the provider running Deduct
 	 * @return
-	 *      updated token with value v-k, Dsid*
+	 *      updated spseqSignature with value v-k, Dsid*
 	 */
 	public TokenDoubleSpendIdPair spend(PSSignature blindedSig) {
 		PSExtendedSignatureScheme psScheme = new PSExtendedSignatureScheme(new PSPublicParameters(pp.group.getBilinearMap()));
@@ -191,7 +194,8 @@ public class SpendInstance {
 		if (!psScheme.verify(messages, unblindedSig, pk)) {
 			throw new IllegalStateException("Not a valid signature!");
 		}
-		// output token
-		return new TokenDoubleSpendIdPair(new IncentiveToken(dsidStar, dsrndStar, (Zp.ZpElement) token.value.sub(k), unblindedSig), dsidInGroupStar);
+		// output spseqSignature
+		// return new TokenDoubleSpendIdPair(new IncentiveToken(dsidStar, dsrndStar, (Zp.ZpElement) token.value.sub(k), unblindedSig), dsidInGroupStar);
+		return null;
 	}
 }

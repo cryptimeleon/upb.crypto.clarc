@@ -4,6 +4,7 @@ import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
 import de.upb.crypto.craco.sig.ps.PSSignature;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQSignature;
 import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.structures.zn.Zp;
 
@@ -23,7 +24,7 @@ public class IncentiveProvider {
 	}
 
 	// in the protocol the issuer first proofs knowledge of its secret key, here we first let the user send the commitment
-	public IssueInstance initIssue(IncentiveUserPublicKey userPublicKey, MessageBlock mPre) {
+	public IssueInstance initIssue(IncentiveUserPublicKey userPublicKey, MessageBlock cPre) {
 		Group g1 = pp.group.getG1();
 		Zp zp = new Zp(g1.size());
 
@@ -31,13 +32,13 @@ public class IncentiveProvider {
 		Zp.ZpElement eskIsr = zp.getUniformlyRandomElement();
 
 
-		return new IssueInstance(pp, keyPair, userPublicKey, eskIsr, mPre);
+		return new IssueInstance(pp, keyPair, userPublicKey, eskIsr, cPre);
 	}
 
-	public CreditInstance initCredit(Zp.ZpElement k, PSSignature randToken, Announcement[] announcements) {
-		return new CreditInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, randToken, ZKAKProvider.getCreditEarnVerifierProtocol(pp, randToken, keyPair.providerPublicKey), announcements);
+	public CreditInstance initCredit(Zp.ZpElement k, MessageBlock cPre, SPSEQSignature spseqSignature, Announcement[] announcements) {
+		return new CreditInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, cPre, spseqSignature, null, announcements);
 	}
-
+/*
 	public DeductInstance initDeduct(Zp.ZpElement k, Zp.ZpElement dsid, ElgamalCipherText cUsrStar) {
 		Zp zp = new Zp(pp.group.getG1().size());
 
@@ -48,7 +49,7 @@ public class IncentiveProvider {
 
 		return new DeductInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, dsid, dsidIsrStar, gamma, cDsidStar);
 
-	}
+	}*/
 
 }
 

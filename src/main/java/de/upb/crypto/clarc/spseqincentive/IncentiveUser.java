@@ -1,7 +1,5 @@
 package de.upb.crypto.clarc.spseqincentive;
 
-import de.upb.crypto.craco.commitment.pedersen.PedersenCommitmentScheme;
-import de.upb.crypto.craco.commitment.pedersen.PedersenPublicParameters;
 import de.upb.crypto.craco.common.GroupElementPlainText;
 import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
@@ -10,6 +8,10 @@ import de.upb.crypto.craco.enc.asym.elgamal.ElgamalPlainText;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalPublicKey;
 import de.upb.crypto.craco.sig.ps.PSExtendedVerificationKey;
 import de.upb.crypto.craco.sig.ps.PSSignature;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQPublicParameters;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQSignature;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQSignatureScheme;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQVerificationKey;
 import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
@@ -36,7 +38,7 @@ public class IncentiveUser {
 	 * ElGamal with randomness open.
 	 *
 	 * @param pk
-	 *          public key of the issuer that signs the incentive token
+	 *          public key of the issuer that signs the incentive spseqSignature
 	 * @return
 	 *      the {@link JoinInstance} holding the state of the user during Issue/Receive
 	 */
@@ -73,32 +75,33 @@ public class IncentiveUser {
 
 	/**
 	 * Initializes the {@link EarnInstance} with the common input and computes the first round of Earn.
-	 * The first round consists of randomizing {@code token} as preparation of the ZKAK run in the protocol.
+	 * The first round consists of randomizing {@code spseqSignature} as preparation of the ZKAK run in the protocol.
 	 *
 	 * @param pk
-	 *          public key of the issues that signed {@code token}
+	 *          public key of the issues that signed {@code spseqSignature}
 	 * @param k
-	 *          # points the {@code token}'s account is increased
+	 *          # points the {@code spseqSignature}'s account is increased
 	 * @param token
-	 *          token of which the account should be increased
+	 *          spseqSignature of which the account should be increased
 	 *
 	 * @return
 	 *      the {@link EarnInstance} holding the user's state during the execution of Credit/Earn
 	 */
-	public EarnInstance initEarn(PSExtendedVerificationKey pk, Zp.ZpElement k, IncentiveToken token) {
+	public EarnInstance initEarn(IncentiveProviderPublicKey pk, Zp.ZpElement k, IncentiveToken token) {
 		Zp zp = new Zp(pp.group.getG1().size());
 
-		PSSignature signature = token.token;
-		GroupElement sigma0 = signature.getGroup1ElementSigma1();
-		GroupElement sigma1 = signature.getGroup1ElementSigma2();
-		Zp.ZpElement r = zp.getUniformlyRandomUnit();
-		Zp.ZpElement rPrime = zp.getUniformlyRandomElement();
-		GroupElement sigma0Prime = sigma0.pow(r);
-		GroupElement sigma1Prime = (sigma1.op(sigma0.pow(rPrime))).pow(r);
-		PSSignature blindedSig = new PSSignature(sigma0Prime, sigma1Prime);
+		// use sps-eq signature scheme to change the representative and to randomize the signature before
+		// sending it to the issuer
 
+		SPSEQSignatureScheme spseqSignatureScheme = new SPSEQSignatureScheme(pk.spseqPublicParameters);
 
-		return new EarnInstance(pp, pk, k, keyPair.userSecretKey, token, rPrime, blindedSig, ZKAKProvider.getCreditEarnProverProtocol(pp, blindedSig, pk, keyPair.userSecretKey.usk, token.dsid, token.dsrnd, token.value, rPrime));
+		Zp.ZpElement s = zp.getUniformlyRandomUnit();
+
+		SPSEQSignature spseqSignatureR = (SPSEQSignature) spseqSignatureScheme.chgRepWithVerify(token.M,token.spseqSignature,s,pk.spseqVerificationKey);
+
+		MessageBlock cTupleR = (MessageBlock) spseqSignatureScheme.chgRepMessage(token.M,s);
+
+		return new EarnInstance(pp, pk, k, keyPair.userSecretKey, token, s, spseqSignatureR, cTupleR, ZKAKProvider.getCreditEarnProverProtocol(pp, spseqSignatureR, pk, keyPair.userSecretKey.usk, token, s));
 	}
 
 	/**

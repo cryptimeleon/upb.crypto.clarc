@@ -68,7 +68,7 @@ public class DeductInstance {
 	 * @param ctrace
 	 *              elgamal encryption of dsidInGroupStar
 	 * @param randToken
-	 *              randomized version of the token the points are spent from
+	 *              randomized version of the spseqSignature the points are spent from
 	 * @param schnorrAnnouncements
 	 *              announcement of the Schnoor protocol
 	 * @param rangePP

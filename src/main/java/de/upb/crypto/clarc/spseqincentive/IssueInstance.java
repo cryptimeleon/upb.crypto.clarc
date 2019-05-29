@@ -28,7 +28,7 @@ public class IssueInstance {
 
 	IncentiveProviderKeyPair providerKeyPair;
 
-	Zp.ZpElement eskIsr;
+	Zp.ZpElement eskisr;
 	MessageBlock cPre;
 
 	PedersenCommitmentValue c;
@@ -36,11 +36,11 @@ public class IssueInstance {
 	Announcement[] announcements;
 	Challenge ch;
 
-	public IssueInstance(IncentiveSystemPublicParameters pp, IncentiveProviderKeyPair providerKeyPair, IncentiveUserPublicKey userPublicKey, Zp.ZpElement eskIsr, MessageBlock cPre) {
+	public IssueInstance(IncentiveSystemPublicParameters pp, IncentiveProviderKeyPair providerKeyPair, IncentiveUserPublicKey userPublicKey, Zp.ZpElement eskisr, MessageBlock cPre) {
 		this.pp = pp;
 		this.providerKeyPair = providerKeyPair;
 		this.userPublicKey = userPublicKey;
-		this.eskIsr = eskIsr;
+		this.eskisr = eskisr;
 		this.cPre = cPre;
 	}
 
@@ -54,9 +54,8 @@ public class IssueInstance {
 	 * @param announcements
 	 *          Receiver's announcement
 	 */
-	public void initProtocol(PedersenCommitmentValue c, Announcement[] announcements) {
-		this.c = c;
-		this.protocol = ZKAKProvider.getIssueReceiveVerifierProtocol(pp, new Zp(pp.group.getG1().size()), userPublicKey, providerKeyPair.providerPublicKey, c, cPre);
+	public void initProtocol(MessageBlock cPre, GroupElement bCom, Announcement[] announcements) {
+		this.protocol = ZKAKProvider.getIssueReceiveVerifierProtocol(pp, new Zp(pp.group.getG1().size()), userPublicKey, providerKeyPair.providerPublicKey, cPre, bCom);
 		this.announcements = announcements;
 	}
 
@@ -74,15 +73,20 @@ public class IssueInstance {
 		}
 
 		// generate signature
-		GroupElement cPre0 = (GroupElement) cPre.get(0);
-		GroupElement cPre1 = (GroupElement) cPre.get(1);
-		GroupElement cPost0 = cPre0.asPowProductExpression().op(cPre1,(providerKeyPair.q[1].mul(eskIsr))).evaluate();
+		GroupElement cPre0 = ((GroupElementPlainText) cPre.get(0)).get();
+		GroupElement cPre1 = ((GroupElementPlainText) cPre.get(1)).get();
+		Zp.ZpElement test = eskisr;
+
+		Zp.ZpElement exp = providerKeyPair.q[1].mul(eskisr);
+		GroupElement cPost0 = cPre0.op(cPre1.pow(exp));
 
 		MessageBlock cPost = new MessageBlock();
 		cPost.add(new GroupElementPlainText(cPost0));
 		cPost.add(new GroupElementPlainText(cPre1));
 
-		SPSEQSignatureScheme spseqSignatureScheme = new SPSEQSignatureScheme(new SPSEQPublicParameters(pp.group.getBilinearMap()));
+
+
+		SPSEQSignatureScheme spseqSignatureScheme = new SPSEQSignatureScheme(providerKeyPair.providerPublicKey.spseqPublicParameters);
 		SPSEQSignature signature = (SPSEQSignature) spseqSignatureScheme.sign(cPost, providerKeyPair.spseqSigningKey);
 
 		return signature;

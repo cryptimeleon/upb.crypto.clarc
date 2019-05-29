@@ -16,7 +16,7 @@ import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
 import de.upb.crypto.craco.sig.ps.PSExtendedVerificationKey;
 import de.upb.crypto.craco.sig.ps.PSSignature;
-import de.upb.crypto.craco.sig.sps.eq.SPSEQVerificationKey;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQSignature;
 import de.upb.crypto.math.interfaces.mappings.BilinearMap;
 import de.upb.crypto.math.interfaces.mappings.PairingProductExpression;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
@@ -30,17 +30,20 @@ import java.util.List;
 public class ZKAKProvider {
 
 	/* Defines the factory for the ZKAK ran in the Issue/Receive protocol */
-	private static GeneralizedSchnorrProtocolFactory getIssueJoinProtocolFactory(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey pk, PedersenCommitmentValue c, MessageBlock cPre) {
+	private static GeneralizedSchnorrProtocolFactory getIssueJoinProtocolFactory(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey pk, MessageBlock cPre, GroupElement bCom) {
 
 		ZnVariable uskVar = new ZnVariable("usk");
+		ZnVariable uskuVar = new ZnVariable("usku");
 		ZnVariable eskusrVar = new ZnVariable("eskusr");
 		ZnVariable dsrnd0Var = new ZnVariable("dsrnd0");
 		ZnVariable dsrnd1Var = new ZnVariable("dsrnd1");
 		ZnVariable zVar = new ZnVariable("z");
 		ZnVariable tVar = new ZnVariable("t");
 		ZnVariable uVar = new ZnVariable("u");
+		ZnVariable uInvVar = new ZnVariable("uinv");
+		ZnVariable openVar = new ZnVariable("open");
+		ZnVariable openUVar = new ZnVariable("openu");
 
-		// TODO: u is still missing in CPre0 expression
 
 		// problem 1: Cpre =
 		ArithGroupElementExpression h1Expr = new NumberGroupElementLiteral(pk.h1to6[0]);
@@ -50,7 +53,7 @@ public class ZKAKProvider {
 		ArithGroupElementExpression h6Expr = new NumberGroupElementLiteral(pk.h1to6[5]);
 		ArithGroupElementExpression h7Expr = new NumberGroupElementLiteral(pp.h7);
 
-		ArithGroupElementExpression h1UskExpr = new PowerGroupElementExpression(h1Expr, uskVar);
+		ArithGroupElementExpression h1UskUExpr = new PowerGroupElementExpression(h1Expr, uskuVar);
 		ArithGroupElementExpression h2EskusrExpr = new PowerGroupElementExpression(h2Expr, eskusrVar);
 		ArithGroupElementExpression h3Dsrnd0Expr = new PowerGroupElementExpression(h3Expr, dsrnd0Var);
 		ArithGroupElementExpression h4Dsrnd1Expr = new PowerGroupElementExpression(h4Expr, dsrnd1Var);
@@ -59,49 +62,73 @@ public class ZKAKProvider {
 
 		NumberGroupElementLiteral cPre0 = new NumberGroupElementLiteral(((GroupElementPlainText)cPre.get(0)).get());
 
-		ArithGroupElementExpression rhsExpr = new ProductGroupElementExpression(h1UskExpr, h2EskusrExpr,h3Dsrnd0Expr,h4Dsrnd1Expr,h6ZExpr,h7TExpr);
+		ArithGroupElementExpression rhsExpr = new ProductGroupElementExpression(h1UskUExpr, h2EskusrExpr,h3Dsrnd0Expr,h4Dsrnd1Expr,h6ZExpr,h7TExpr);
 		GroupElementEqualityExpression problem1 = new GroupElementEqualityExpression(cPre0, rhsExpr);
 
-		// problem 2: upk = w^usk
+		// problem 2: upk = w^{usk}
 		ArithGroupElementExpression upkExpr = new NumberGroupElementLiteral(userPublicKey.upk);
 		NumberGroupElementLiteral wExpr = new NumberGroupElementLiteral(pp.w);
 		PowerGroupElementExpression wUskExpr = new PowerGroupElementExpression(wExpr, uskVar);
 
 		GroupElementEqualityExpression problem2 = new GroupElementEqualityExpression(upkExpr, new ProductGroupElementExpression(wUskExpr));
 
-		// problem 3: g1^u
+		// problem 1b: g1^u
 		NumberGroupElementLiteral cPre1 = new NumberGroupElementLiteral(((GroupElementPlainText)cPre.get(1)).get());
 		ArithGroupElementExpression g1Expr = new NumberGroupElementLiteral(pp.g1);
 
 		PowerGroupElementExpression g1UExpr = new PowerGroupElementExpression(g1Expr, uVar);
-		GroupElementEqualityExpression problem1b = new GroupElementEqualityExpression(cPre1, g1UExpr);
+		GroupElementEqualityExpression problem1b = new GroupElementEqualityExpression(cPre1, new ProductGroupElementExpression(g1UExpr));
 
 
-		return new GeneralizedSchnorrProtocolFactory(new GroupElementEqualityExpression[]{problem1, problem1b, problem2}, zp);
+		// problem 3: bCom = h1^usk * g1^open
+		NumberGroupElementLiteral bComLit = new NumberGroupElementLiteral(bCom);
+		ArithGroupElementExpression h1UskExpr = new PowerGroupElementExpression(h1Expr, uskVar);
+		ArithGroupElementExpression g1OpenExpr = new PowerGroupElementExpression(g1Expr, openVar);
+		ArithGroupElementExpression rhsBComExpr = new ProductGroupElementExpression(h1UskExpr,g1OpenExpr);
+		GroupElementEqualityExpression problem3 = new GroupElementEqualityExpression(bComLit, rhsBComExpr);
+
+
+		// problem 4: bCom^u = h1^{usk*u} * g1^{open*u}
+		NumberGroupElementLiteral neutralLit = new NumberGroupElementLiteral(pp.group.getG1().getNeutralElement());
+		NumberGroupElementLiteral bComInvLit = new NumberGroupElementLiteral(bCom.inv());
+		PowerGroupElementExpression bComUExpr = new PowerGroupElementExpression(bComInvLit, uVar);
+		ArithGroupElementExpression g1OpenUExpr = new PowerGroupElementExpression(g1Expr, openUVar);
+		ArithGroupElementExpression rhsBComUExpr = new ProductGroupElementExpression(h1UskUExpr,g1OpenUExpr,bComUExpr);
+		GroupElementEqualityExpression problem4 = new GroupElementEqualityExpression(neutralLit, rhsBComUExpr);
+
+
+		return new GeneralizedSchnorrProtocolFactory(new GroupElementEqualityExpression[]{problem1, problem1b, problem2, problem3, problem4}, zp);
 	}
 
 	/* Returns the prover protocol of the ZKAK ran in Issue/Receive */
-	static SigmaProtocol getIssueReceiveProverProtocol(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, PSExtendedVerificationKey pk, PedersenCommitmentValue c, ElgamalCipherText cDsid, Zp.ZpElement usk, Zp.ZpElement dsid, Zp.ZpElement dsrnd, Zp.ZpElement r, Zp.ZpElement open) {
+	static SigmaProtocol getIssueReceiveProverProtocol(IncentiveSystemPublicParameters pp, Zp zp, JoinInstance joinInstance) {
 
 		HashMap<String, Zp.ZpElement> witnessMapping = new HashMap<>();
-		witnessMapping.put("usk", usk);
-		witnessMapping.put("dsidInGroup", dsid);
-		witnessMapping.put("dsrnd", dsrnd);
-		witnessMapping.put("r", r);
-		witnessMapping.put("open", open);
+		witnessMapping.put("usk", joinInstance.usrKeypair.userSecretKey.usk);
+		witnessMapping.put("usku", joinInstance.usrKeypair.userSecretKey.usk.mul(joinInstance.u));
+		witnessMapping.put("eskusr", joinInstance.eskusr.mul(joinInstance.u));
+		witnessMapping.put("dsrnd0", joinInstance.dsrnd0.mul(joinInstance.u));
+		witnessMapping.put("dsrnd1", joinInstance.dsrnd1.mul(joinInstance.u));
+		witnessMapping.put("z", joinInstance.z.mul(joinInstance.u));
+		witnessMapping.put("t", joinInstance.t.mul(joinInstance.u));
+		witnessMapping.put("u", joinInstance.u);
+		witnessMapping.put("uinv", joinInstance.u.inv());
+		witnessMapping.put("open", joinInstance.open);
+		witnessMapping.put("openu", joinInstance.open.mul(joinInstance.u));
 
-		return getIssueJoinProtocolFactory(pp, zp, userPublicKey, pk, c, cDsid).createProverGeneralizedSchnorrProtocol(witnessMapping);
+
+		return getIssueJoinProtocolFactory(pp, zp, joinInstance.usrKeypair.userPublicKey, joinInstance.pk, joinInstance.cPre, joinInstance.bCom).createProverGeneralizedSchnorrProtocol(witnessMapping);
 	}
 
-	static SigmaProtocol getIssueReceiveVerifierProtocol(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey providerPublicKey, PedersenCommitmentValue c, MessageBlock cPre) {
-		return getIssueJoinProtocolFactory(pp, zp, userPublicKey, providerPublicKey, c, cPre).createVerifierGeneralizedSchnorrProtocol();
+	static SigmaProtocol getIssueReceiveVerifierProtocol(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey providerPublicKey, MessageBlock cPre, GroupElement bCom) {
+		return getIssueJoinProtocolFactory(pp, zp, userPublicKey, providerPublicKey, cPre, bCom).createVerifierGeneralizedSchnorrProtocol();
 	}
 
-	private static GeneralizedSchnorrProtocolFactory getPSVerifyProtocolFactory(IncentiveSystemPublicParameters pp, PSSignature randtoken, PSExtendedVerificationKey pk) {
-		GroupElementEqualityExpression problem = getPSVerifyProtocolProblem(pp, randtoken, pk);
-		return new GeneralizedSchnorrProtocolFactory(new GroupElementEqualityExpression[]{problem}, new Zp(pp.group.getG1().size()));
+	private static GeneralizedSchnorrProtocolFactory getPSVerifyProtocolFactory(IncentiveSystemPublicParameters pp, SPSEQSignature spseqSignature, IncentiveProviderPublicKey pk) {
+		//GroupElementEqualityExpression problem = getPSVerifyProtocolProblem(pp, spseqSignature, pk);
+		return null;
 	}
-
+	/*
 	private static GroupElementEqualityExpression getPSVerifyProtocolProblem(IncentiveSystemPublicParameters pp, PSSignature randtoken, PSExtendedVerificationKey pk) {
 		ZnVariable uskVar = new ZnVariable("usk");
 		ZnVariable dsidVar = new ZnVariable("dsid");
@@ -141,20 +168,23 @@ public class ZKAKProvider {
 
 		return new GroupElementEqualityExpression(lhsExpr, new ProductGroupElementExpression(factorsRHS));
 	}
+	*/
 
-	static GeneralizedSchnorrProtocol getCreditEarnProverProtocol(IncentiveSystemPublicParameters pp, PSSignature randtoken, PSExtendedVerificationKey pk, Zp.ZpElement usk, Zp.ZpElement dsid, Zp.ZpElement dsrnd, Zp.ZpElement v, Zp.ZpElement rPrime) {
+	static GeneralizedSchnorrProtocol getCreditEarnProverProtocol(IncentiveSystemPublicParameters pp, SPSEQSignature spseqSignatureR, IncentiveProviderPublicKey pk, Zp.ZpElement usk, IncentiveToken token, Zp.ZpElement s) {
 		HashMap<String, Zp.ZpElement> witnessMapping = new HashMap<>();
 		witnessMapping.put("usk", usk);
-		witnessMapping.put("dsid", dsid);
-		witnessMapping.put("dsrnd", dsrnd);
-		witnessMapping.put("v", v);
-		witnessMapping.put("rPrime", rPrime);
+		witnessMapping.put("eskusr", token.esk);
+		witnessMapping.put("dsrnd0", token.dsrnd0);
+		witnessMapping.put("dsrnd1", token.dsrnd1);
+		witnessMapping.put("z", token.z);
+		witnessMapping.put("t", token.t);
+		witnessMapping.put("s", s);
 
-		return getPSVerifyProtocolFactory(pp, randtoken, pk).createProverGeneralizedSchnorrProtocol(witnessMapping);
+		return null;
 	}
 
-	static GeneralizedSchnorrProtocol getCreditEarnVerifierProtocol(IncentiveSystemPublicParameters pp, PSSignature randtoken, PSExtendedVerificationKey pk) {
-		return getPSVerifyProtocolFactory(pp, randtoken, pk).createVerifierGeneralizedSchnorrProtocol();
+	static GeneralizedSchnorrProtocol getCreditEarnVerifierProtocol(IncentiveSystemPublicParameters pp, SPSEQSignature spseqSignature, IncentiveProviderPublicKey pk) {
+		return getPSVerifyProtocolFactory(pp, spseqSignature, pk).createVerifierGeneralizedSchnorrProtocol();
 	}
 
 	private static GeneralizedSchnorrProtocolFactory getSpendDeductSchnoorProtocolFactory(IncentiveSystemPublicParameters pp, Zp.ZpElement dsid, Zp.ZpElement c, PSExtendedVerificationKey pk, PSSignature blindedSig, PedersenCommitmentValue commitmentOfValue, ElgamalCipherText ctrace, Zp.ZpElement k, PedersenCommitmentValue commitment, ElgamalCipherText cDsidStar, Zp.ZpElement gamma) {
@@ -180,8 +210,8 @@ public class ZKAKProvider {
 
 		ArithComparisonExpression problem1 = new GroupElementEqualityExpression(lhs1, new ProductGroupElementExpression(factor1, factor2));
 
-		// problem 2: Vrfy randomized token
-		// Note that the second msg signed by the token (dsid) is publicly known. Thus, we pull it on the LHS of the expression.
+		// problem 2: Vrfy randomized spseqSignature
+		// Note that the second msg signed by the spseqSignature (dsid) is publicly known. Thus, we pull it on the LHS of the expression.
 
 		BilinearMap e = pp.group.getBilinearMap();
 
@@ -329,39 +359,41 @@ public class ZKAKProvider {
 		return new GroupElementEqualityExpression(new NumberGroupElementLiteral(c2), rhs3bExpr);
 	}
 
+
+
 	/* Prover and Verifier protocols using PoPK */
 
-//	static SigmaProtocol getSpendDeductProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v, PedersenCommitmentValue rangeCommitment, Zp.ZpElement rangeRandomness) {
-//		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOfValue, usk, dldsid, dsrnd, dldsidStar, dsrndStar, r, rC, rPrime, v, , );
-//		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
-//
-//		ZeroToUPowLRangeProofProtocol rangeProof = getSpendDeductRangeProverProtocol(pp, pk, rangeCommitment, rangeRandomness, (Zp.ZpElement) v.sub(k));
-//		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
-//
-//		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);
-//
-//		return new ProofOfPartialKnowledgeProtocol(
-//				new ProofOfPartialKnowledgePublicParameters(
-//						new ShamirSecretSharingSchemeProvider(),
-//						new Zp(pp.group.getG1().size())
-//				), policy
-//		);
-//	}
-//
-//	static SigmaProtocol getSpendDeductVerifierProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV, ArbitraryRangeProofPublicParameters rangePP) {
-//		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrVerifierProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOnV);
-//		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
-//
-//		ZeroToUPowLRangeProofProtocol rangeProof = getSpendDeductRangeVerifierProtocol(rangePP);
-//		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
-//
-//		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);
-//
-//		return new ProofOfPartialKnowledgeProtocol(
-//				new ProofOfPartialKnowledgePublicParameters(
-//						new ShamirSecretSharingSchemeProvider(),
-//						new Zp(pp.group.getG1().size())
-//				), policy
-//		);
-//	}
+/*	static SigmaProtocol getSpendDeductProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dldsid, Zp.ZpElement dsrnd, Zp.ZpElement dldsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v, PedersenCommitmentValue rangeCommitment, Zp.ZpElement rangeRandomness) {
+		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOfValue, usk, dldsid, dsrnd, dldsidStar, dsrndStar, r, rC, rPrime, v, , );
+		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
+
+		ZeroToUPowLRangeProofProtocol rangeProof = getSpendDeductRangeProverProtocol(pp, pk, rangeCommitment, rangeRandomness, (Zp.ZpElement) v.sub(k));
+		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
+
+		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);
+
+		return new ProofOfPartialKnowledgeProtocol(
+				new ProofOfPartialKnowledgePublicParameters(
+						new ShamirSecretSharingSchemeProvider(),
+						new Zp(pp.group.getG1().size())
+				), policy
+		);
+	}
+
+	static SigmaProtocol getSpendDeductVerifierProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV, ArbitraryRangeProofPublicParameters rangePP) {
+		GeneralizedSchnorrProtocol schnorr = getSpendDeductSchnorrVerifierProtocol(pp, c, gamma, pk, blindedSig, k, ctrace, commitment, commitmentOnV);
+		SigmaProtocolPolicyFact schnorrPolicyFact = new SigmaProtocolPolicyFact(schnorr, 1);
+
+		ZeroToUPowLRangeProofProtocol rangeProof = getSpendDeductRangeVerifierProtocol(rangePP);
+		SigmaProtocolPolicyFact rangePolicyFact = new SigmaProtocolPolicyFact(rangeProof, 2);
+
+		ThresholdPolicy policy = new ThresholdPolicy(2, schnorrPolicyFact, rangePolicyFact);
+
+		return new ProofOfPartialKnowledgeProtocol(
+				new ProofOfPartialKnowledgePublicParameters(
+						new ShamirSecretSharingSchemeProvider(),
+						new Zp(pp.group.getG1().size())
+				), policy
+		);
+	}*/
 }

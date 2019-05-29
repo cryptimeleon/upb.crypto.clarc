@@ -11,7 +11,6 @@ import de.upb.crypto.math.factory.BilinearGroup;
 import de.upb.crypto.math.factory.BilinearGroupFactory;
 import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
-import de.upb.crypto.math.pairings.eccelerate.ECCelerateBilinearGroupProvider;
 import de.upb.crypto.math.pairings.mcl.MclBilinearGroupProvider;
 import de.upb.crypto.math.structures.zn.Zp;
 

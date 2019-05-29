@@ -1,25 +1,16 @@
-package de.upb.crypto.clarc.incentive;
+package de.upb.crypto.clarc.spseqincentive;
 
-import de.upb.crypto.clarc.predicategeneration.rangeproofs.zerotoupowlrangeproof.ZeroToUPowLRangeProofPublicParameters;
-import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
+
 import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.clarc.protocols.parameters.Challenge;
 import de.upb.crypto.clarc.protocols.parameters.Response;
 import de.upb.crypto.clarc.utils.Stopwatch;
 import de.upb.crypto.craco.common.MessageBlock;
-import de.upb.crypto.craco.common.RingElementPlainText;
-import de.upb.crypto.craco.sig.ps.*;
+import de.upb.crypto.craco.sig.sps.eq.*;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
-import de.upb.crypto.math.serialization.ListRepresentation;
-import de.upb.crypto.math.serialization.ObjectRepresentation;
-import de.upb.crypto.math.serialization.Representable;
 import de.upb.crypto.math.structures.zn.Zp;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,10 +23,11 @@ public class IncentiveSystemTest {
 	IncentiveUserSecretKey userSK;
 
 	IncentiveProvider provider;
-	PSExtendedVerificationKey pk;
-	PSSigningKey sk;
+	IncentiveProviderSecretKey providerSecretKey;
+	IncentiveProviderPublicKey providerPublicKey;
 
-	PSExtendedSignatureScheme signatureScheme;
+
+	SPSEQSignatureScheme spseqSignatureScheme;
 
 	static final int POINTS_CREDITED = 100;
 	static final int POINTS_SPENT = 25;
@@ -66,16 +58,16 @@ public class IncentiveSystemTest {
 		//measureTime(null);
 		this.provider = new IncentiveProvider(pp);
 		// measureTime("Provider setup");
-		this.pk = provider.keyPair.providerPublicKey;
-		this.sk = provider.keyPair.providerSecretKey;
+		this.providerPublicKey = provider.keyPair.providerPublicKey;
+		this.providerSecretKey = provider.keyPair.providerSecretKey;
 
 		// set up signature scheme
-		this.signatureScheme = new PSExtendedSignatureScheme(new PSPublicParameters(pp.group.getBilinearMap()));
+		this.spseqSignatureScheme = new SPSEQSignatureScheme(providerPublicKey.spseqPublicParameters);
 	}
 
 	@Test
-	public void testIssueReceive() {
-		TokenDoubleSpendIdPair output = issueReceive(user, userPK, provider, pk);
+	public void testIssueJoin() {
+		TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, providerPublicKey);
 		GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
 		IncentiveToken userToken = output.token;
 
@@ -83,40 +75,39 @@ public class IncentiveSystemTest {
 		assertEquals(userToken.value,zp.getZeroElement());
 
 		// signature in token is valid on pk over usk, dldsig, dsrnd, value (of token)
-		MessageBlock msg = new MessageBlock();
-		Stream.of(userSK.usk, userToken.dsid, userToken.dsrnd, userToken.value).map(RingElementPlainText::new).collect(Collectors.toCollection(() -> msg));
-		assertTrue(signatureScheme.verify(msg, userToken.token, pk));
+		// MessageBlock msg = new MessageBlock();
+		//Stream.of(userSK.usk, userToken.dsid, userToken.dsrnd, userToken.value).map(RingElementPlainText::new).collect(Collectors.toCollection(() -> msg));
+		assertTrue(spseqSignatureScheme.verify(userToken.M, userToken.spseqSignature, providerPublicKey.spseqVerificationKey));
 
 		// dsidInGroup =? w^dsidInGroup
-		assertEquals(userDoubleSpendID, pp.w.pow(userToken.dsid));
+		assertEquals(userDoubleSpendID, pp.w.pow(userToken.esk));
 	}
 
 	@Test
 	public void testCreditEarn() {
 		// initialize a token
-		TokenDoubleSpendIdPair output = issueReceive(user, userPK, provider, pk);
+		TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, providerPublicKey);
 		GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
 		IncentiveToken userToken = output.token;
 
-		IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken, POINTS_CREDITED);
+		IncentiveToken updatedToken = creditEarn(zp, user, provider, providerPublicKey, userToken, POINTS_CREDITED);
 
 		// the balance after earn should be POINTS_CREDITED
 		assertEquals(updatedToken.value,zp.valueOf(POINTS_CREDITED));
 
 		// dsidInGroup and dsrnd unchanged during credit
-		assertEquals(userToken.dsid, updatedToken.dsid);
-		assertEquals(userToken.dsrnd, updatedToken.dsrnd);
+		assertEquals(userToken.esk, updatedToken.esk);
+		assertEquals(userToken.dsrnd0, updatedToken.dsrnd0);
+		assertEquals(userToken.dsrnd1, updatedToken.dsrnd1);
 
 		// signature still valid?
-		MessageBlock updatedMsg = new MessageBlock();
-		Stream.of(userSK.usk, updatedToken.dsid, updatedToken.dsrnd, updatedToken.value).map(RingElementPlainText::new).collect(Collectors.toCollection(() -> updatedMsg));
-		assertTrue(signatureScheme.verify(updatedMsg, updatedToken.token, pk));
+		assertTrue(spseqSignatureScheme.verify(updatedToken.M, updatedToken.spseqSignature, providerPublicKey.spseqVerificationKey));
 	}
-
+/*
 	@Test
 	public void testSpendDeduct() {
 		// initialize a token
-		TokenDoubleSpendIdPair output = issueReceive(user, userPK, provider, pk);
+		TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, pk);
 		GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
 		IncentiveToken userToken = output.token;
 
@@ -132,7 +123,7 @@ public class IncentiveSystemTest {
 	@Test
 	public void testSpendDeductNegatively() {
 		// initialize a token
-		TokenDoubleSpendIdPair output = issueReceive(user, userPK, provider, pk);
+		TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, pk);
 		GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
 		IncentiveToken userToken = output.token;
 
@@ -224,48 +215,52 @@ public class IncentiveSystemTest {
 
 		return spend;
 	}
-
-	IncentiveToken creditEarn(Zp zp, IncentiveUser user, IncentiveProvider provider, PSExtendedVerificationKey pk, IncentiveToken userToken, int pointsCredited) {
+*/
+	IncentiveToken creditEarn(Zp zp, IncentiveUser user, IncentiveProvider provider,  IncentiveProviderPublicKey pk, IncentiveToken userToken, int pointsCredited) {
 		// asssumption: value k credited known to both parties
 		Zp.ZpElement k = zp.valueOf(pointsCredited);
 
 		EarnInstance earnInstance = user.initEarn(pk, k, userToken);
-		Announcement[] announcements = earnInstance.generateAnnoucements();
+		//Announcement[] announcements = earnInstance.generateAnnoucements();
 
-		CreditInstance creditInstance = provider.initCredit(k, earnInstance.randToken, announcements);
-		Challenge challenge = creditInstance.chooseChallenge();
+		CreditInstance creditInstance = provider.initCredit(k, earnInstance.cPrime, earnInstance.spseqSignature, null);
+		//Challenge challenge = creditInstance.chooseChallenge();
 
-		Response[] responses = earnInstance.generateResponses(challenge);
+		//Response[] responses = earnInstance.generateResponses(challenge);
 
-		PSSignature blindedSig = creditInstance.credit(responses);
+		SPSEQSignature spseqSignature = creditInstance.credit(null);
 
-		IncentiveToken earn = earnInstance.earn(blindedSig);
+		IncentiveToken earn = earnInstance.earn(spseqSignature);
 		return earn;
 	}
 
-	TokenDoubleSpendIdPair issueReceive(IncentiveUser user, IncentiveUserPublicKey userPK, IncentiveProvider provider, PSExtendedVerificationKey pk) {
+
+	TokenDoubleSpendIdPair issueJoin(IncentiveUser user, IncentiveUserPublicKey userPK, IncentiveProvider provider, IncentiveProviderPublicKey pk) {
 		// assumption: exchange common input before-hand
-		ReceiveInstance receiveInstance = user.initReceive(pk);
+		JoinInstance joinInstance = user.initJoin(pk);
 
-		IssueInstance issueInstance = provider.initIssue(userPK, receiveInstance.cUsr);
+		IssueInstance issueInstance = provider.initIssue(userPK, joinInstance.cPre);
 
-		receiveInstance.initProtocol(issueInstance.dsidIsr);
-		Announcement[] announcements = receiveInstance.generateAnnoucements();
+		joinInstance.initProtocol(issueInstance.eskisr);
 
-		issueInstance.initProtocol(receiveInstance.c, announcements);
+		joinInstance.protocol.isFulfilled();
+
+		Announcement[] announcements = joinInstance.generateAnnoucements();
+
+		issueInstance.initProtocol(joinInstance.cPre, joinInstance.bCom, announcements);
 		Challenge ch = issueInstance.chooseChallenge();
 
-		Response[] responses = receiveInstance.computeResponses(ch);
+		Response[] responses = joinInstance.computeResponses(ch);
 
-		PSSignature blindedSignature = issueInstance.issue(responses);
+		SPSEQSignature spseqSignature = issueInstance.issue(responses);
 
-		TokenDoubleSpendIdPair receive = receiveInstance.receive(blindedSignature);
+		TokenDoubleSpendIdPair receive = joinInstance.join(spseqSignature);
 		return receive;
 	}
 
-	/* Performance tests */
+	//* Performance tests *//*
 	@Test
-	public void evalIssueReceive() {
+	public void evalIssueJoin() {
 		if(maxIterations == 0) return;
 
 		Stopwatch receiveTimer = new Stopwatch("Receive");
@@ -277,20 +272,20 @@ public class IncentiveSystemTest {
 
 			// assumption: exchange common input before-hand
 			receiveTimer.start();
-			ReceiveInstance receiveInstance = user.initReceive(pk);
+			JoinInstance receiveInstance = user.initJoin(providerPublicKey);
 			receiveTimer.stop();
 
 			issueTimer.start();
-			IssueInstance issueInstance = provider.initIssue(userPK, receiveInstance.cUsr);
+			IssueInstance issueInstance = provider.initIssue(userPK, receiveInstance.cPre);
 			issueTimer.stop();
 
 			receiveTimer.start();
-			receiveInstance.initProtocol(issueInstance.dsidIsr);
+			receiveInstance.initProtocol(issueInstance.eskisr);
 			Announcement[] announcements = receiveInstance.generateAnnoucements();
 			receiveTimer.stop();
 
 			issueTimer.start();
-			issueInstance.initProtocol(receiveInstance.c, announcements);
+			issueInstance.initProtocol(receiveInstance.cPre, receiveInstance.bCom, announcements);
 			Challenge ch = issueInstance.chooseChallenge();
 			issueTimer.stop();
 
@@ -299,11 +294,11 @@ public class IncentiveSystemTest {
 			receiveTimer.stop();
 
 			issueTimer.start();
-			PSSignature blindedSignature = issueInstance.issue(responses);
+			SPSEQSignature blindedSignature = issueInstance.issue(responses);
 			issueTimer.stop();
 
 			receiveTimer.start();
-			TokenDoubleSpendIdPair receive = receiveInstance.receive(blindedSignature);
+			TokenDoubleSpendIdPair receive = receiveInstance.join(blindedSignature);
 			receiveTimer.stop();
 
 			GroupElement userDoubleSpendID = receive.doubleSpendIDinGroup;
@@ -315,11 +310,11 @@ public class IncentiveSystemTest {
 			issueTimer.reset();
 		}
 		System.out.println("AVG timing for protocol Issue/Receive over " + maxIterations + " runs:");
-		System.out.println("Receive: " + ((double) receiveAcc) / maxIterations / 1E9);
+		System.out.println("Join: " + ((double) receiveAcc) / maxIterations / 1E9);
 		System.out.println("Issue: " + ((double) issueAcc) / maxIterations / 1E9);
 		System.out.println();
 	}
-
+/*
 	@Test
 	public void evalCreditEarn() {
 		if(maxIterations == 0) return;
@@ -330,7 +325,7 @@ public class IncentiveSystemTest {
 		long creditAcc = 0;
 
 		for (int i = 0; i < maxIterations; i++) {
-			TokenDoubleSpendIdPair output = issueReceive(user, userPK, provider, pk);
+			TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, pk);
 			GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
 			IncentiveToken userToken = output.token;
 			Zp.ZpElement k = zp.valueOf(POINTS_CREDITED);
@@ -378,7 +373,7 @@ public class IncentiveSystemTest {
 		long deductAcc = 0;
 
 		for (int i = 0; i < maxIterations; i++) {
-			TokenDoubleSpendIdPair output = issueReceive(user, userPK, provider, pk);
+			TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, pk);
 			GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
 			IncentiveToken userToken = output.token;
 			IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken, POINTS_CREDITED);
@@ -428,5 +423,5 @@ public class IncentiveSystemTest {
 		System.out.println("Spend: " + ((double) spendAcc) / maxIterations /  1E9);
 		System.out.println("Deduct: " + ((double) deductAcc) / maxIterations / 1E9);
 		System.out.println();
-	}
+	}*/
 }

@@ -4,9 +4,14 @@ import de.upb.crypto.clarc.protocols.arguments.SigmaProtocol;
 import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.clarc.protocols.parameters.Challenge;
 import de.upb.crypto.clarc.protocols.parameters.Response;
+import de.upb.crypto.craco.common.GroupElementPlainText;
+import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.sig.ps.PSExtendedVerificationKey;
 import de.upb.crypto.craco.sig.ps.PSSignature;
 import de.upb.crypto.craco.sig.ps.PSSigningKey;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQPublicParameters;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQSignature;
+import de.upb.crypto.craco.sig.sps.eq.SPSEQSignatureScheme;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
@@ -22,21 +27,25 @@ import de.upb.crypto.math.structures.zn.Zp;
  */
 public class CreditInstance {
 	IncentiveSystemPublicParameters pp;
-	PSExtendedVerificationKey pk;
-	PSSigningKey sk;
+	IncentiveProviderPublicKey pk;
+	IncentiveProviderSecretKey sk;
 	Zp.ZpElement k;
+	MessageBlock cPre;
 
-	PSSignature randToken;
+	SPSEQSignature spseqSignature;
 	SigmaProtocol protocol;
 	Announcement[] announcements;
 	Challenge ch;
 
-	public CreditInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, PSSigningKey sk, Zp.ZpElement k, PSSignature randToken, SigmaProtocol protocol, Announcement[] announcements) {
+	// TODO: ZKPoK fromm issuer to user for the secret key is missing
+
+	public CreditInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveProviderSecretKey sk, Zp.ZpElement k, MessageBlock cPre, SPSEQSignature spseqSignature, SigmaProtocol protocol, Announcement[] announcements) {
 		this.pp = pp;
 		this.pk = pk;
 		this.sk = sk;
 		this.k = k;
-		this.randToken = randToken;
+		this.cPre = cPre;
+		this.spseqSignature = spseqSignature;
 		this.protocol = protocol;
 		this.announcements = announcements;
 	}
@@ -47,31 +56,31 @@ public class CreditInstance {
 	}
 
 	/**
-	 * Updates the randomized token by {@link #k} points.
+	 * Updates the randomized spseqSignature by {@link #k} points.
 	 *
 	 * @param responses
 	 *          responses of the ZKAK protocol
 	 * @return
-	 *      updated token
+	 *      updated spseqSignature
 	 */
-	public PSSignature credit(Response[] responses) {
-		if (this.ch == null) {
-			throw new IllegalStateException("Please run the ZKAK to completion first.");
+	public SPSEQSignature credit(Response[] responses) {
+		SPSEQSignatureScheme spseqSignatureScheme = new SPSEQSignatureScheme(pk.spseqPublicParameters);
+
+		if(!spseqSignatureScheme.verify(cPre,spseqSignature,pk.spseqVerificationKey)) {
+			throw new IllegalStateException("Given signature not valid, will not isse new signature on new point value");
 		}
-		if(!protocol.verify(announcements, ch, responses)) {
-			throw new IllegalStateException("Proof does not accept! Issue aborted...");
-		}
 
-		Zp zp = new Zp(pp.group.getG1().size());
-		Zp.ZpElement rPrimePrime = zp.getUniformlyRandomUnit();
 
-		GroupElement sigma0 = randToken.getGroup1ElementSigma1();
-		GroupElement sigma1 = randToken.getGroup1ElementSigma2();
+		// generate signature
+		GroupElement cPre0 = ((GroupElementPlainText) cPre.get(0)).get();
+		GroupElement cPre1 = ((GroupElementPlainText) cPre.get(1)).get();
+		GroupElement cPost0 = cPre0.asPowProductExpression().op(cPre1,(sk.q[4].mul(k))).evaluate();
 
-		return new PSSignature(
-				sigma0.asPowProductExpression().pow(rPrimePrime).evaluate(),
-				// (sigma1 * sigma0^{y4 * k})^r''
-				sigma1.asPowProductExpression().op( sigma0, sk.getExponentsYi()[3].mul(k)).pow(rPrimePrime).evaluate()
-		);
+		MessageBlock cPost = new MessageBlock();
+		cPost.add(new GroupElementPlainText(cPost0));
+		cPost.add(new GroupElementPlainText(cPre1));
+
+		SPSEQSignature signature = (SPSEQSignature) spseqSignatureScheme.sign(cPost, sk.spseqSigningKey);
+		return signature;
 	}
 }
