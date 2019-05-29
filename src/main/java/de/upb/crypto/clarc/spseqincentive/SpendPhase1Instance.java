@@ -37,7 +37,7 @@ import java.util.stream.Stream;
  *  3. {@link #spend(PSSignature)} (PSSignature)}
  * After {@link #spend(PSSignature)} was run, the prover should have obtained an updated spseqSignature for a new double-spend id.
  */
-public class SpendInstance {
+public class SpendPhase1Instance {
 	IncentiveSystemPublicParameters pp;
 	PSExtendedVerificationKey pk;
 	Zp.ZpElement k;
@@ -69,7 +69,7 @@ public class SpendInstance {
 	PSSignature randToken;
 	ElgamalCipherText ctrace;
 
-	public SpendInstance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, Zp.ZpElement dsid, GroupElement upk, Zp.ZpElement usk, IncentiveToken token, Zp.ZpElement dsidUsrStar, Zp.ZpElement openStar, ElgamalCipherText cUsrStar) {
+	public SpendPhase1Instance(IncentiveSystemPublicParameters pp, PSExtendedVerificationKey pk, Zp.ZpElement k, Zp.ZpElement dsid, GroupElement upk, Zp.ZpElement usk, IncentiveToken token, Zp.ZpElement dsidUsrStar, Zp.ZpElement openStar, ElgamalCipherText cUsrStar) {
 		this.pp = pp;
 		this.pk = pk;
 		this.k = k;

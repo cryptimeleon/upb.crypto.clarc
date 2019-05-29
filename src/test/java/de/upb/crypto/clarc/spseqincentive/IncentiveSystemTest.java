@@ -139,7 +139,7 @@ public class IncentiveSystemTest {
 		// assumption: points k1 spent & double spend id known to both parties
 		Zp.ZpElement k1 = zp.valueOf(pointsSpent);
 
-		SpendInstance spendInstance = user.initSpend(pk, k1, userDoubleSpendID, updatedToken);
+		SpendPhase1Instance spendInstance = user.initSpendPhase1(pk, k1, userDoubleSpendID, updatedToken);
 
 		// 1st message to provider
 		ObjectRepresentation msg1Repr = new ObjectRepresentation();
@@ -381,7 +381,7 @@ public class IncentiveSystemTest {
 			Zp.ZpElement k1 = zp.valueOf(POINTS_SPENT);
 
 			spendTimer.start();
-			SpendInstance spendInstance = user.initSpend(pk, k1, output.token.dsid, updatedToken);
+			SpendPhase1Instance spendInstance = user.initSpendPhase1(pk, k1, output.token.dsid, updatedToken);
 			spendTimer.stop();
 
 			deductTimer.start();

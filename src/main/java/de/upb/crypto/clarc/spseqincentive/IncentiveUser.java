@@ -6,12 +6,8 @@ import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalEncryption;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalPlainText;
 import de.upb.crypto.craco.enc.asym.elgamal.ElgamalPublicKey;
-import de.upb.crypto.craco.sig.ps.PSExtendedVerificationKey;
-import de.upb.crypto.craco.sig.ps.PSSignature;
-import de.upb.crypto.craco.sig.sps.eq.SPSEQPublicParameters;
 import de.upb.crypto.craco.sig.sps.eq.SPSEQSignature;
 import de.upb.crypto.craco.sig.sps.eq.SPSEQSignatureScheme;
-import de.upb.crypto.craco.sig.sps.eq.SPSEQVerificationKey;
 import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
@@ -114,17 +110,39 @@ public class IncentiveUser {
 	 *
 	 * @return
 	 */
-	public SpendInstance initSpend(PSExtendedVerificationKey pk, Zp.ZpElement k, Zp.ZpElement dsid, IncentiveToken token) {
-		Group g1 = pp.group.getG1();
-		Zp zp = new Zp(g1.size());
+	public SpendPhase1Instance initSpendPhase1(IncentiveProviderPublicKey pk, Zp.ZpElement k, Zp.ZpElement dsid, IncentiveToken token) {
+		Group groupG1 = pp.group.getG1();
+		Zp zp = new Zp(groupG1.size());
 
 		Zp.ZpElement dsidUsrStar = zp.getUniformlyRandomElement();
 		Zp.ZpElement openStar = zp.getUniformlyRandomElement();
 
-		// ElGamal commitment
-		ElgamalCipherText cUsrStar = elgamalCommit(pp.g1.pow(dsidUsrStar), openStar);
 
-		return new SpendInstance(this.pp, pk, k, dsid, keyPair.userPublicKey.upk, keyPair.userSecretKey.usk, token, dsidUsrStar, openStar, cUsrStar);
+
+		Zp.ZpElement eskusr = zp.getUniformlyRandomElement();
+		Zp.ZpElement dsrnd0 = zp.getUniformlyRandomElement();
+		Zp.ZpElement dsrnd1 = zp.getUniformlyRandomElement();
+		Zp.ZpElement z = zp.getUniformlyRandomElement();
+		Zp.ZpElement t = zp.getUniformlyRandomElement();
+		Zp.ZpElement u = zp.getUniformlyRandomElement();
+
+		GroupElement h1Elem = pk.h1to6[0].pow(keyPair.userSecretKey.usk.mul(u));
+		GroupElement h2Elem = pk.h1to6[1].pow(eskusr.mul(u));
+		GroupElement h3Elem = pk.h1to6[2].pow(dsrnd0.mul(u));
+		GroupElement h4Elem = pk.h1to6[3].pow(dsrnd1.mul(u));
+		GroupElement h6Elem = pk.h1to6[5].pow(z.mul(u));
+		GroupElement h7Elem = pp.h7.pow(t.mul(u));
+
+
+		// commitment Cpre
+		GroupElement cPre0 = h1Elem.op(h2Elem).op(h3Elem).op(h4Elem).op(h6Elem).op(h7Elem);
+		GroupElement cPre1 = pp.g1.pow(u);
+		MessageBlock cPre = new MessageBlock();
+		cPre.add(new GroupElementPlainText(cPre0));
+		cPre.add(new GroupElementPlainText(cPre1));
+
+
+		return new SpendPhase1Instance(this.pp, pk, k, dsid, keyPair.userPublicKey.upk, keyPair.userSecretKey.usk, token, dsidUsrStar, openStar, cUsrStar);
 	}
 
 	private ElgamalCipherText elgamalCommit(GroupElement message, Zp.ZpElement randomness) {

@@ -58,7 +58,7 @@ public class DeductInstance {
 	}
 
 	/**
-	 * This method is required as the verifier needs to set up the same protocol instance as the prover. Therefore, the prover needs to send over the {@link ZeroToUPowLRangeProofPublicParameters} of the protocol set up in the {@link SpendInstance}.
+	 * This method is required as the verifier needs to set up the same protocol instance as the prover. Therefore, the prover needs to send over the {@link ZeroToUPowLRangeProofPublicParameters} of the protocol set up in the {@link SpendPhase1Instance}.
 	 * @param commitment
 	 *              commitment on usk, dldsidStar, dsrndStar, and v-k
 	 * @param commitmentOnV
