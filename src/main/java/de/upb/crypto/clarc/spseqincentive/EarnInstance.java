@@ -72,7 +72,7 @@ public class EarnInstance {
 	/**
 	 * Computes the final output of earn. This includes unblinding the updated spseqSignature and verifying its validity.
 	 *
-	 * @param blindedSig
+	 * @param spseqSignature
 	 *          blinded, updated incentive spseqSignature
 	 * @return
 	 *          unblinded updated spseqSignature

@@ -24,39 +24,13 @@ import de.upb.crypto.math.structures.zn.Zp;
  *  4. {@link #join(SPSEQSignature)}
  * After {@link #join(SPSEQSignature)} was run, the prover should have obtained an spseqSignature and a double-spend ID.
  */
-public class JoinInstance {
-	// internal state
-	Zp.ZpElement eskusr;
-	Zp.ZpElement dsrnd0;
-	Zp.ZpElement dsrnd1;
-	Zp.ZpElement z;
-	Zp.ZpElement t;
-	Zp.ZpElement u;
-	Zp.ZpElement eskisr;
-	MessageBlock cPre;
-	GroupElement bCom;
-	Zp.ZpElement open;
-	// common input
-	IncentiveSystemPublicParameters pp;
-	IncentiveProviderPublicKey pk;
-	IncentiveUserKeyPair usrKeypair;
+public class JoinInstance extends CPreComProofInstance {
 
 	//Zp.ZpElement dsid;
 	//PedersenCommitmentValue c;
 
-	SigmaProtocol protocol;
-
-	public JoinInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveUserKeyPair keyPair, Zp.ZpElement eskusr, Zp.ZpElement dsrnd0, Zp.ZpElement dsrnd1, Zp.ZpElement z, Zp.ZpElement t, Zp.ZpElement u, MessageBlock cPre) {
-		this.pp = pp;
-		this.pk = pk;
-		this.usrKeypair = keyPair;
-		this.eskusr = eskusr;
-		this.dsrnd0 = dsrnd0;
-		this.dsrnd1 = dsrnd1;
-		this.z = z;
-		this.t = t;
-		this.u = u;
-		this.cPre = cPre;
+	public JoinInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveUserKeyPair keyPair, IncentiveUser.CPreComProofValues cPreComProofValues) {
+		super(pp, pk, keyPair, cPreComProofValues);
 	}
 
 	/** Initializes the ZKAK protocol after receiving the eskisr of the issuer.
@@ -73,50 +47,11 @@ public class JoinInstance {
 		//  use cPre
 		open = zp.getUniformlyRandomElement();
 
-
 		bCom = pk.h1to6[0].pow(usrKeypair.userSecretKey.usk).op(pp.g1.pow(open));
-
-
-		// remove the last group element for the proof
-		// value v = 0 => always 1 for every g1
-/*		GroupElement[] groupElements = new GroupElement[] {pk.getGroup1ElementsYi()[0],pk.getGroup1ElementsYi()[1], pk.getGroup1ElementsYi()[2]};
-		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), groupElements, g1);
-		PedersenCommitmentScheme pedersen = new PedersenCommitmentScheme(pedersenPP);
-		MessageBlock messages = new MessageBlock();
-		Stream.of(usrKeypair.userSecretKey.usk, dsid, dsrnd).map(RingElementPlainText::new).collect(Collectors.toCollection(() -> messages));
-		PedersenCommitmentPair commitmentPair = pedersen.commit(messages);
-		this.c = commitmentPair.getCommitmentValue();
-		this.t = commitmentPair.getOpenValue().getRandomValue();*/
 
 		this.protocol = ZKAKProvider.getIssueReceiveProverProtocol(pp, zp, this);
 	}
 
-	public MessageBlock getCommitment() {
-		return cPre;
-	}
-
-	public SigmaProtocol getProtocol() {
-		return protocol;
-	}
-
-	/**
-	 * @return
-	 *      announcements of {@link #protocol} sent in the second move of Receive.
-	 */
-	public Announcement[] generateAnnoucements() {
-		return protocol.generateAnnouncements();
-	}
-
-	/**
-	 *
-	 * @param ch
-	 *          challenge received by the issuer
-	 * @return
-	 *          responses sent in the third move of Receive
-	 */
-	public Response[] computeResponses(Challenge ch) {
-		return protocol.generateResponses(ch);
-	}
 
 	/**
 	 * Computes the final output of Join.
@@ -133,7 +68,6 @@ public class JoinInstance {
 		// compute cPost with eskisr added
 		GroupElement cPre0 = ((GroupElementPlainText) cPre.get(0)).get();
 		GroupElement cPre1 = ((GroupElementPlainText) cPre.get(1)).get();
-		Zp.ZpElement test = eskisr;
 		GroupElement cPost0 = cPre0.op(pk.h1to6[1].pow(eskisr.mul(u)));
 
 		Zp.ZpElement eskFinal = eskusr.add(eskisr);

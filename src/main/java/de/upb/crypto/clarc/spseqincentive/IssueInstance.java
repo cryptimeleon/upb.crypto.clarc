@@ -55,7 +55,7 @@ public class IssueInstance {
 	 *          Receiver's announcement
 	 */
 	public void initProtocol(MessageBlock cPre, GroupElement bCom, Announcement[] announcements) {
-		this.protocol = ZKAKProvider.getIssueReceiveVerifierProtocol(pp, new Zp(pp.group.getG1().size()), userPublicKey, providerKeyPair.providerPublicKey, cPre, bCom);
+		this.protocol = ZKAKProvider.getIssueJoinVerifierProtocol(pp, new Zp(pp.group.getG1().size()), userPublicKey, providerKeyPair.providerPublicKey, cPre, bCom);
 		this.announcements = announcements;
 	}
 

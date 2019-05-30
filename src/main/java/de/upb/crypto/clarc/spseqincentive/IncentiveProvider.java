@@ -2,10 +2,9 @@ package de.upb.crypto.clarc.spseqincentive;
 
 import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.craco.common.MessageBlock;
-import de.upb.crypto.craco.enc.asym.elgamal.ElgamalCipherText;
-import de.upb.crypto.craco.sig.ps.PSSignature;
 import de.upb.crypto.craco.sig.sps.eq.SPSEQSignature;
 import de.upb.crypto.math.interfaces.structures.Group;
+import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
 /**
@@ -37,6 +36,19 @@ public class IncentiveProvider {
 
 	public CreditInstance initCredit(Zp.ZpElement k, MessageBlock cPre, SPSEQSignature spseqSignature, Announcement[] announcements) {
 		return new CreditInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, cPre, spseqSignature, null, announcements);
+	}
+
+
+	public DeductPhase1nstance initDeductPhase1(IncentiveUserPublicKey userPublicKey, Zp.ZpElement k, GroupElement dsid, MessageBlock cPre){
+		Group g1 = pp.group.getG1();
+		Zp zp = new Zp(g1.size());
+
+		// esk*_{isr} <- Zp
+		Zp.ZpElement eskIsr = zp.getUniformlyRandomElement();
+		// gamma <- Zp
+		Zp.ZpElement gamma = zp.getUniformlyRandomElement();
+
+		return new DeductPhase1nstance(pp, keyPair, userPublicKey, eskIsr, gamma, k, dsid, cPre);
 	}
 /*
 	public DeductInstance initDeduct(Zp.ZpElement k, Zp.ZpElement dsid, ElgamalCipherText cUsrStar) {

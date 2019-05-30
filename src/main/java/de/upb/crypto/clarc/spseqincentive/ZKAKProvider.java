@@ -100,8 +100,72 @@ public class ZKAKProvider {
 		return new GeneralizedSchnorrProtocolFactory(new GroupElementEqualityExpression[]{problem1, problem1b, problem2, problem3, problem4}, zp);
 	}
 
+	private static GeneralizedSchnorrProtocolFactory getSpendPhase1ProtocolFactory(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey pk, MessageBlock cPre, GroupElement bCom) {
+		ZnVariable uskVar = new ZnVariable("usk");
+		ZnVariable uskuVar = new ZnVariable("usku");
+		ZnVariable eskusrVar = new ZnVariable("eskusr");
+		ZnVariable dsrnd0Var = new ZnVariable("dsrnd0");
+		ZnVariable dsrnd1Var = new ZnVariable("dsrnd1");
+		ZnVariable zVar = new ZnVariable("z");
+		ZnVariable tVar = new ZnVariable("t");
+		ZnVariable uVar = new ZnVariable("u");
+		ZnVariable uInvVar = new ZnVariable("uinv");
+		ZnVariable openVar = new ZnVariable("open");
+		ZnVariable openUVar = new ZnVariable("openu");
+
+
+		// problem 1: Cpre =
+		ArithGroupElementExpression h1Expr = new NumberGroupElementLiteral(pk.h1to6[0]);
+		ArithGroupElementExpression h2Expr = new NumberGroupElementLiteral(pk.h1to6[1]);
+		ArithGroupElementExpression h3Expr = new NumberGroupElementLiteral(pk.h1to6[2]);
+		ArithGroupElementExpression h4Expr = new NumberGroupElementLiteral(pk.h1to6[3]);
+		ArithGroupElementExpression h6Expr = new NumberGroupElementLiteral(pk.h1to6[5]);
+		ArithGroupElementExpression h7Expr = new NumberGroupElementLiteral(pp.h7);
+
+		ArithGroupElementExpression h1UskUExpr = new PowerGroupElementExpression(h1Expr, uskuVar);
+		ArithGroupElementExpression h2EskusrExpr = new PowerGroupElementExpression(h2Expr, eskusrVar);
+		ArithGroupElementExpression h3Dsrnd0Expr = new PowerGroupElementExpression(h3Expr, dsrnd0Var);
+		ArithGroupElementExpression h4Dsrnd1Expr = new PowerGroupElementExpression(h4Expr, dsrnd1Var);
+		ArithGroupElementExpression h6ZExpr = new PowerGroupElementExpression(h6Expr, zVar);
+		ArithGroupElementExpression h7TExpr = new PowerGroupElementExpression(h7Expr, tVar);
+
+		NumberGroupElementLiteral cPre0 = new NumberGroupElementLiteral(((GroupElementPlainText)cPre.get(0)).get());
+
+		ArithGroupElementExpression rhsExpr = new ProductGroupElementExpression(h1UskUExpr, h2EskusrExpr,h3Dsrnd0Expr,h4Dsrnd1Expr,h6ZExpr,h7TExpr);
+		GroupElementEqualityExpression problem1 = new GroupElementEqualityExpression(cPre0, rhsExpr);
+
+
+		// problem 1b: g1^u
+		NumberGroupElementLiteral cPre1 = new NumberGroupElementLiteral(((GroupElementPlainText)cPre.get(1)).get());
+		ArithGroupElementExpression g1Expr = new NumberGroupElementLiteral(pp.g1);
+
+		PowerGroupElementExpression g1UExpr = new PowerGroupElementExpression(g1Expr, uVar);
+		GroupElementEqualityExpression problem1b = new GroupElementEqualityExpression(cPre1, new ProductGroupElementExpression(g1UExpr));
+
+
+		// problem 3: bCom = h1^usk * g1^open
+		NumberGroupElementLiteral bComLit = new NumberGroupElementLiteral(bCom);
+		ArithGroupElementExpression h1UskExpr = new PowerGroupElementExpression(h1Expr, uskVar);
+		ArithGroupElementExpression g1OpenExpr = new PowerGroupElementExpression(g1Expr, openVar);
+		ArithGroupElementExpression rhsBComExpr = new ProductGroupElementExpression(h1UskExpr,g1OpenExpr);
+		GroupElementEqualityExpression problem3 = new GroupElementEqualityExpression(bComLit, rhsBComExpr);
+
+
+		// problem 4: bCom^u = h1^{usk*u} * g1^{open*u}
+		NumberGroupElementLiteral neutralLit = new NumberGroupElementLiteral(pp.group.getG1().getNeutralElement());
+		NumberGroupElementLiteral bComInvLit = new NumberGroupElementLiteral(bCom.inv());
+		PowerGroupElementExpression bComUExpr = new PowerGroupElementExpression(bComInvLit, uVar);
+		ArithGroupElementExpression g1OpenUExpr = new PowerGroupElementExpression(g1Expr, openUVar);
+		ArithGroupElementExpression rhsBComUExpr = new ProductGroupElementExpression(h1UskUExpr,g1OpenUExpr,bComUExpr);
+		GroupElementEqualityExpression problem4 = new GroupElementEqualityExpression(neutralLit, rhsBComUExpr);
+
+
+		return new GeneralizedSchnorrProtocolFactory(new GroupElementEqualityExpression[]{problem1, problem1b, problem3, problem4}, zp);
+	}
+
+
 	/* Returns the prover protocol of the ZKAK ran in Issue/Receive */
-	static SigmaProtocol getIssueReceiveProverProtocol(IncentiveSystemPublicParameters pp, Zp zp, JoinInstance joinInstance) {
+	static SigmaProtocol getIssueReceiveProverProtocol(IncentiveSystemPublicParameters pp, Zp zp, CPreComProofInstance joinInstance) {
 
 		HashMap<String, Zp.ZpElement> witnessMapping = new HashMap<>();
 		witnessMapping.put("usk", joinInstance.usrKeypair.userSecretKey.usk);
@@ -120,7 +184,32 @@ public class ZKAKProvider {
 		return getIssueJoinProtocolFactory(pp, zp, joinInstance.usrKeypair.userPublicKey, joinInstance.pk, joinInstance.cPre, joinInstance.bCom).createProverGeneralizedSchnorrProtocol(witnessMapping);
 	}
 
-	static SigmaProtocol getIssueReceiveVerifierProtocol(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey providerPublicKey, MessageBlock cPre, GroupElement bCom) {
+
+	public static SigmaProtocol getSpendPhase1ProverProtocol(IncentiveSystemPublicParameters pp, Zp zp, SpendPhase1Instance spendPhase1Instance) {
+		HashMap<String, Zp.ZpElement> witnessMapping = new HashMap<>();
+		witnessMapping.put("usk", spendPhase1Instance.usrKeypair.userSecretKey.usk);
+		witnessMapping.put("usku", spendPhase1Instance.usrKeypair.userSecretKey.usk.mul(spendPhase1Instance.u));
+		witnessMapping.put("eskusr", spendPhase1Instance.eskusr.mul(spendPhase1Instance.u));
+		witnessMapping.put("dsrnd0", spendPhase1Instance.dsrnd0.mul(spendPhase1Instance.u));
+		witnessMapping.put("dsrnd1", spendPhase1Instance.dsrnd1.mul(spendPhase1Instance.u));
+		witnessMapping.put("z", spendPhase1Instance.z.mul(spendPhase1Instance.u));
+		witnessMapping.put("t", spendPhase1Instance.t.mul(spendPhase1Instance.u));
+		witnessMapping.put("u", spendPhase1Instance.u);
+		witnessMapping.put("uinv", spendPhase1Instance.u.inv());
+		witnessMapping.put("open", spendPhase1Instance.open);
+		witnessMapping.put("openu", spendPhase1Instance.open.mul(spendPhase1Instance.u));
+
+
+		return getSpendPhase1ProtocolFactory(pp, zp, spendPhase1Instance.usrKeypair.userPublicKey, spendPhase1Instance.pk, spendPhase1Instance.cPre, spendPhase1Instance.bCom).createProverGeneralizedSchnorrProtocol(witnessMapping);
+
+	}
+
+
+	static SigmaProtocol getSpendPhase1VerifierProtocol(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey providerPublicKey, MessageBlock cPre, GroupElement bCom) {
+		return getSpendPhase1ProtocolFactory(pp, zp, userPublicKey, providerPublicKey, cPre, bCom).createVerifierGeneralizedSchnorrProtocol();
+	}
+
+	static SigmaProtocol getIssueJoinVerifierProtocol(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey providerPublicKey, MessageBlock cPre, GroupElement bCom) {
 		return getIssueJoinProtocolFactory(pp, zp, userPublicKey, providerPublicKey, cPre, bCom).createVerifierGeneralizedSchnorrProtocol();
 	}
 
