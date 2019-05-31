@@ -22,6 +22,10 @@ import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
+import java.lang.reflect.Array;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,7 +51,8 @@ public class SpendInstance {
 	IncentiveToken token;
 
 	// 1st move
-	Zp.ZpElement dsidUsrStar;
+	Zp.ZpElement eskUsrShare;
+	Zp.ZpElement eskIsrShare;
 	Zp.ZpElement openStar;
 	ElgamalCipherText cUsrStar;
 
@@ -64,7 +69,7 @@ public class SpendInstance {
 	SigmaProtocol schnorrProtocol;
 	SigmaProtocol rangeProtocol;
 	PedersenCommitmentValue commitment;
-	Zp.ZpElement c;
+	Zp.ZpElement c0,c1;
 	PedersenCommitmentValue commitmentOnValue;
 	PSSignature randToken;
 	ElgamalCipherText ctrace;
@@ -83,6 +88,40 @@ public class SpendInstance {
 		this.cUsrStar = cUsrStar;
 	}
 
+
+	public static final BigInteger BASE = BigInteger.valueOf(20);
+	public static final int rho(BigInteger p) {
+		return (int) (Math.floor(p.bitLength() / (double) BASE.bitLength()) + 1);
+	}
+
+	public static List<Zp.ZpElement> getUaryRepresentationOf(Zp.ZpElement value) {
+		BigInteger p = value.getStructure().size();
+		int rho = rho(p);
+
+		List<Zp.ZpElement> result = new ArrayList<>();
+		BigInteger remainder = value.getInteger();
+
+		while (remainder.signum() > 0) {
+			BigInteger digit = remainder.mod(BASE);
+			remainder = remainder.subtract(digit).divide(BASE);
+			result.add(value.getStructure().valueOf(digit));
+		}
+
+		if (result.size() > rho)
+			throw new RuntimeException("rho too small");
+
+		BigInteger b = BigInteger.ONE;
+		Zp.ZpElement recreated = value.getStructure().getZeroElement();
+		for (Zp.ZpElement r : result) {
+			recreated = recreated.add(r.mul(recreated.getStructure().createZnElement(b)));
+			b = b.multiply(BigInteger.valueOf(2));
+		}
+		if (!recreated.equals(value))
+			throw new RuntimeException("Bit decomposition doesn't work");
+
+		return result;
+	}
+
 	/**
 	 * Initializes the ZKAK protocol after receiving dsid_isr*.
 	 * And prepares the second move of the spend algorithm.
@@ -93,9 +132,35 @@ public class SpendInstance {
 	 *          value used to enable linking
 	 */
 	public void initProtocol(Zp.ZpElement dsidIsrStar, Zp.ZpElement gamma) {
-		/*
+
 		Group g1 = pp.group.getG1();
 		Zp zp = new Zp(g1.size());
+		int rho = rho(zp.size());
+
+
+		// linking values c0, c1
+		this.c0 = usk.mul(gamma).add(token.dsrnd0);
+		this.c1 = token.esk.mul(gamma).add(token.dsrnd1);
+
+		//new esk^*
+		Zp.ZpElement eskStar = eskUsrShare.add(eskIsrShare);
+		List<Zp.ZpElement> esk_i_star = getUaryRepresentationOf(eskStar);
+
+		//Encrypt esk_i_star
+		List<Zp.ZpElement> r_i = new ArrayList<>();
+		List<GroupElement> w_raised_r_i = new ArrayList<>();
+		List<GroupElement> w_raised_r_i_esk_times_bla = new ArrayList<>();
+		for (int i=0; i<rho;i++) {
+			Zp.ZpElement r = zp.getUniformlyRandomElement();
+			r_i.add(r);
+			w_raised_r_i.add(pp.w.pow(r));
+			w_raised_r_i_esk_times_bla.add(pp.w.pow(r.mul(esk).add(esk_i_star.get(i))));
+		}
+
+		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentTokenValue, usk, dsid, token.dsrnd, dsidStar, dsrndStar, r, rC, rPrime, token.value, openStar, cDsidStar);
+
+
+		//BELOW OLD STUFF
 
 		this.dsidStar = dsidUsrStar.add(dsidIsrStar);
 		this.cDsidStar = new ElgamalCipherText(cUsrStar.getC1(), cUsrStar.getC2().op(pp.g1.pow(dsidIsrStar)));
@@ -116,8 +181,7 @@ public class SpendInstance {
 		this.commitment = commitmentPair.getCommitmentValue();
 		this.rC = commitmentPair.getOpenValue().getRandomValue();
 
-		// linking value c
-		this.c = usk.mul(gamma).add(token.dsrnd);
+
 
 		// encryption ctrace of dsidInGroup*
 		ElgamalPublicKey encKey = new ElgamalPublicKey(g1, pp.w, upk);
@@ -153,7 +217,7 @@ public class SpendInstance {
 		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentTokenValue, usk, dsid, token.dsrnd, dsidStar, dsrndStar, r, rC, rPrime, token.value, openStar, cDsidStar);
 
 		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeProverProtocol(pp, commitmentVSubK, rV, (Zp.ZpElement) token.value.sub(k));
-		*/
+
 	}
 
 	public Announcement[] generateSchnorrAnnoucements() {
