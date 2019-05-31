@@ -21,8 +21,11 @@ import de.upb.crypto.math.interfaces.mappings.BilinearMap;
 import de.upb.crypto.math.interfaces.mappings.PairingProductExpression;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.interfaces.structures.PowProductExpression;
+import de.upb.crypto.math.interfaces.structures.RingAdditiveGroup;
 import de.upb.crypto.math.structures.zn.Zp;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -276,114 +279,124 @@ public class ZKAKProvider {
 		return getPSVerifyProtocolFactory(pp, spseqSignature, pk).createVerifierGeneralizedSchnorrProtocol();
 	}
 
-	private static GeneralizedSchnorrProtocolFactory getSpendDeductSchnoorProtocolFactory(IncentiveSystemPublicParameters pp, Zp.ZpElement dsid, Zp.ZpElement c, PSExtendedVerificationKey pk, PSSignature blindedSig, PedersenCommitmentValue commitmentOfValue, ElgamalCipherText ctrace, Zp.ZpElement k, PedersenCommitmentValue commitment, ElgamalCipherText cDsidStar, Zp.ZpElement gamma) {
+	public static ArithGroupElementExpression powExpr(GroupElement g, ZnVariable x) {
+		return new PowerGroupElementExpression(new NumberGroupElementLiteral(g), x);
+	}
+
+	public static ArithGroupElementExpression prodExpr(ArithGroupElementExpression... exprs) {
+		return new ProductGroupElementExpression(exprs);
+	}
+
+	public static GroupElementEqualityExpression equalExpr(GroupElement lhs, ArithGroupElementExpression rhs) {
+		if (rhs instanceof PowerGroupElementExpression) {
+			rhs = prodExpr(rhs);
+		}
+		return new GroupElementEqualityExpression(new NumberGroupElementLiteral(lhs), rhs);
+	}
+
+	private static GeneralizedSchnorrProtocolFactory getSpendDeductSchnoorProtocolFactory(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, Zp.ZpElement dsid, Zp.ZpElement c, PSExtendedVerificationKey pk, PSSignature blindedSig, PedersenCommitmentValue commitmentOfValue, ElgamalCipherText ctrace, Zp.ZpElement k, PedersenCommitmentValue commitment, ElgamalCipherText cDsidStar, Zp.ZpElement gamma, int rho) {
+		Zp zp = new Zp(pp.group.getG1().size());
+		RingAdditiveGroup additiveZp = zp.asAdditiveGroup();
+		RingAdditiveGroup.RingAdditiveGroupElement oneInZp = zp.getOneElement().toAdditiveGroupElement(); //generator of additive Zp
+		List<RingAdditiveGroup.RingAdditiveGroupElement> base_to_the_i = new ArrayList<>();
+		for (int i=0;i<rho;i++)
+			base_to_the_i.add(zp.valueOf(SpendInstance.BASE.pow(i)).toAdditiveGroupElement());
 
 		ZnVariable uskVar = new ZnVariable("usk");
-		ZnVariable dsrndVar = new ZnVariable("dsrnd");
 		ZnVariable vVar = new ZnVariable("v");
-		ZnVariable dsidStarVar = new ZnVariable("dsidStar");
-		ZnVariable dsrndStarVar = new ZnVariable("dsrndStar");
-		ZnVariable rPrimeVar = new ZnVariable("rPrime");
-		ZnVariable rVar = new ZnVariable("r");
-		ZnVariable rCVar = new ZnVariable("rC");
-		ZnVariable openStarVar = new ZnVariable("openStar");
-		ZnVariable rVVar = new ZnVariable("rV");
+		ZnVariable zVar = new ZnVariable("z");
+		ZnVariable zStarVar = new ZnVariable("zStar");
+		ZnVariable tVar = new ZnVariable("t");
+		ZnVariable tStarVar = new ZnVariable("tStar");
+		ZnVariable uStarVar = new ZnVariable("uStar");
+		ZnVariable eskVar = new ZnVariable("esk");
+		ZnVariable eskStarVar = new ZnVariable("eskStar");
+		List<ZnVariable> esk_i_starVar = new ArrayList<>();
+		List<ZnVariable> r_iVar = new ArrayList<>();
+		for (int i=0;i<rho;i++) {
+			esk_i_starVar.add(new ZnVariable("esk_" + i + "_star")); //base-decomp of esk*
+			esk_i_starVar.add(new ZnVariable("r_" + i));
+		}
 
-		ArithGroupElementExpression wExpr = new NumberGroupElementLiteral(pp.w);
+		List<ZnVariable> v_iStarVar = new ArrayList<>(); //base decomposition of v* = v-k
+		for (int i=0; i<SpendInstance.VMAX_EXPONENT; i++) {
+			v_iStarVar.add(new ZnVariable("v_"+i));
+		}
+		ZnVariable eskusrStarVar = new ZnVariable("eskusrStar");
+		ZnVariable dsrnd0Var = new ZnVariable("dsrnd0");
+		ZnVariable dsrnd0StarVar = new ZnVariable("dsrnd0Star");
+		ZnVariable dsrnd1Var = new ZnVariable("dsrnd1");
+		ZnVariable dsrnd1StarVar = new ZnVariable("dsrnd1Star");
 
-		// problem 1: c = usk * gamma + dsrnd <=> w^c = (w^{gamma})^usk * w^dsrnd
-		NumberGroupElementLiteral lhs1 = new NumberGroupElementLiteral(pp.w.pow(c));
 
-		PowerGroupElementExpression factor1 = new PowerGroupElementExpression(new NumberGroupElementLiteral(pp.w.pow(gamma)), uskVar);
-		PowerGroupElementExpression factor2 = new PowerGroupElementExpression(wExpr, dsrndVar);
+		//ZnVariable uskuVar = new ZnVariable("usku");
+		//ZnVariable uInvVar = new ZnVariable("uinv");
+		//ZnVariable openVar = new ZnVariable("open");
+		//ZnVariable openUVar = new ZnVariable("openu");
 
-		ArithComparisonExpression problem1 = new GroupElementEqualityExpression(lhs1, new ProductGroupElementExpression(factor1, factor2));
+		List<GroupElementEqualityExpression> problems = new ArrayList<>();
 
-		// problem 2: Vrfy randomized spseqSignature
-		// Note that the second msg signed by the spseqSignature (dsid) is publicly known. Thus, we pull it on the LHS of the expression.
+		// c0 = usk * gamma + dsrnd0
+		problems.add(equalExpr(oneInZp.pow(c0), powExpr(oneInZp.pow(gamma), uskVar)));
 
-		BilinearMap e = pp.group.getBilinearMap();
+		// c1 = esk * gamma + dsrnd1
+		problems.add(equalExpr(oneInZp.pow(c1), powExpr(oneInZp.pow(gamma), eskVar)));
 
-		GroupElement sigma0 = blindedSig.getGroup1ElementSigma1();
-		GroupElement sigma1 = blindedSig.getGroup1ElementSigma2();
+		//dsid = w^esk
+		problems.add(equalExpr(dsid, powExpr(pp.w, eskVar)));
 
-		GroupElement tildeX = pk.getGroup2ElementTildeX();
-		GroupElement tildeG = pk.getGroup2ElementTildeG();
+		//open C
+		problems.add(equalExpr(C0, prodExpr(
+			powExpr(h1, uskVar),
+			powExpr(h2, eskVar),
+			powExpr(h3, dsrnd0Var),
+			powExpr(h4, dsrnd1Var),
+			powExpr(h5, vVar),
+			powExpr(h6, zVar),
+			powExpr(h7, tVar)
+		)));
 
-		// lhs2 = e(sigma1, g1~) / [e(sigma0, X~)] (usual lhs of the expression)
-		PairingProductExpression lhs2 = e.pairingProductExpression();
-		lhs2.op(sigma0, tildeX).inv().op(sigma1, tildeG);
-		// lhs2 *= 1 / [e(sigma0, Y2~)^dsid] (added due to the fact that dsid is common input)
-		lhs2.op(e.pairingProductExpression().op(sigma0, pk.getGroup2ElementsTildeYi()[1], dsid).inv());
-		ArithGroupElementExpression lhsExpr = new NumberGroupElementLiteral(lhs2.evaluate());
+		// open Cpre
+		//    Cpre0
+		//TODO
 
-		ArithGroupElementExpression sigma0Expr = new NumberGroupElementLiteral(sigma0);
-		ArithGroupElementExpression tildeGExpr = new NumberGroupElementLiteral(tildeG);
-		ArithGroupElementExpression tildeY1Expr = new NumberGroupElementLiteral(pk.getGroup2ElementsTildeYi()[0]);
-		ArithGroupElementExpression tildeY3Expr = new NumberGroupElementLiteral(pk.getGroup2ElementsTildeYi()[2]);
-		ArithGroupElementExpression tildeY4Expr = new NumberGroupElementLiteral(pk.getGroup2ElementsTildeYi()[3]);
+		//    Cpre1
+		problems.add(equalExpr(Cpre1, powExpr(pp.g1, uStarVar)));
 
-		List<ArithGroupElementExpression> factorsRHS = Arrays.asList(
-				// e( sigma0, g1~)^r'
-				new PowerGroupElementExpression(new PairingGroupElementExpression(e, sigma0Expr, tildeGExpr), rPrimeVar),
-				// e(sigma0, Y1~)^usk
-				new PowerGroupElementExpression(new PairingGroupElementExpression(e, sigma0Expr, tildeY1Expr), uskVar),
-				// e(sigma0, Y3~)^dsrnd
-				new PowerGroupElementExpression(new PairingGroupElementExpression(e, sigma0Expr, tildeY3Expr), dsrndVar),
-				// e(sigma0, Y4~)^v
-				new PowerGroupElementExpression(new PairingGroupElementExpression(e, sigma0Expr, tildeY4Expr), vVar)
-		);
+		// esk^* = eskusr* + eskisr*
+		problems.add(equalExpr(oneInZp.pow(eskIsr), prodExpr(
+				powExpr(oneInZp.inv(), eskusrStarVar),
+				powExpr(oneInZp, eskStarVar)
+		)));
 
-		GroupElementEqualityExpression problem2 = new GroupElementEqualityExpression(lhsExpr, new ProductGroupElementExpression(factorsRHS));
+		// v >= k
+		//    v* = v-k base decomp: -k = \sum v_i^* base^i -v with only few summands (VMAX_EXPONENT)
+		List<ArithGroupElementExpression> exprs = new ArrayList<>();
+		for (int i=0;i<SpendInstance.VMAX_EXPONENT;i++)
+			exprs.add(powExpr(base_to_the_i.get(i), v_iStarVar.get(i)));
+		exprs.add(powExpr(oneInZp.inv(), vVar));
+		problems.add(equalExpr(zp.valueOf(k.getInteger()).neg().toAdditiveGroupElement(), prodExpr(exprs.stream().toArray(ArithGroupElementExpression[]::new))));
 
-		// problem 4: ctrace = (c1, c2) :: (a) c1 = w^r AND (b) c2 = (c1)^usk * w^{dsid*}
-		ArithGroupElementExpression c1Expr = new NumberGroupElementLiteral(ctrace.getC1());
-		ArithGroupElementExpression c2Expr = new NumberGroupElementLiteral(ctrace.getC2());
+		//    v_i* < base
+		//TODO
 
-		ArithComparisonExpression problem4a = getElgamalProblemA(ctrace.getC1(), wExpr, rVar);
-		ArithComparisonExpression problem4b = getElgamalProblemB(ctrace.getC2(), c1Expr, uskVar, wExpr, dsidStarVar);
+		//ctrace
+		for (int i=0;i<rho;i++) {
+			problems.add(equalExpr(ctrace.get(i).getC1(), powExpr(pp.w, r_iVar.get(i))));
+			problems.add(equalExpr(ctrace.get(i).getC2(), powExpr(ctrace.get(i).getC1(), eskVar), powExpr(pp.w, esk_i_starVar.get(i))));
+		}
 
-		// problem 5: {g1^{y_1}}^usk {g1^{y_2}}^dsid* {g1^{y_3}}^dsrnd* {g_{y_3}}^{v-k}  g1^rC
-		ArithGroupElementExpression gY1Expr = new NumberGroupElementLiteral(pk.getGroup1ElementsYi()[0]);
-		ArithGroupElementExpression gY2Expr = new NumberGroupElementLiteral(pk.getGroup1ElementsYi()[1]);
-		ArithGroupElementExpression gY3Expr = new NumberGroupElementLiteral(pk.getGroup1ElementsYi()[2]);
-		ArithGroupElementExpression gY4Expr = new NumberGroupElementLiteral(pk.getGroup1ElementsYi()[3]);
-		ArithGroupElementExpression gExpr = new NumberGroupElementLiteral(pk.getGroup1ElementG());
+		//esk* base decomp
+		exprs = new ArrayList<>();
+		for (int i=0;i<rho;i++)
+			exprs.add(powExpr(base_to_the_i.get(i), esk_i_starVar.get(i)));
+		exprs.add(powExpr(oneInZp.inv(), eskStarVar));
+		problems.add(equalExpr(zp.getZeroElement().toAdditiveGroupElement(), prodExpr(exprs.stream().toArray(ArithGroupElementExpression[]::new))));
 
-		// C * (g1^{y4})^k (due to the fact that k is public)
-		PowProductExpression lhs5 = commitment.getCommitmentElement()
-										.asPowProductExpression()
-										.op(pk.getGroup1ElementsYi()[3], k);
-		NumberGroupElementLiteral problem5Lhs = new NumberGroupElementLiteral(lhs5.evaluate());
+		//esk_i* < base
+		//TODO
 
-		List<ArithGroupElementExpression> problem5RhsFactors = Arrays.asList(
-				new PowerGroupElementExpression(gY1Expr, uskVar),
-				new PowerGroupElementExpression(gY2Expr, dsidStarVar),
-				new PowerGroupElementExpression(gY3Expr, dsrndStarVar),
-				new PowerGroupElementExpression(gY4Expr, vVar),
-				new PowerGroupElementExpression(gExpr, rCVar)
-		);
-		ArithComparisonExpression problem5 = new GroupElementEqualityExpression(problem5Lhs, new ProductGroupElementExpression(problem5RhsFactors));
-
-		// problem 6: C_dsid* = (c1, c2) = (g1^(open*), g1^dsid* h7^(open*)) :: (a) c1 = g1^(open*) AND (b) c2 = g1^dsid* h7^(open*)
-		ArithGroupElementExpression gPPExpr = new NumberGroupElementLiteral(pp.g1);
-		ArithGroupElementExpression hExpr = new NumberGroupElementLiteral(pp.h7);
-
-		// 1st component
-		GroupElementEqualityExpression problem6a = getElgamalProblemA(cDsidStar.getC1(), gPPExpr, openStarVar);
-		// 2nd component
-		GroupElementEqualityExpression problem6b = getElgamalProblemB(cDsidStar.getC2(), gPPExpr, dsidStarVar, hExpr, openStarVar);
-
-		// problem 3: commitment on value is valid for v, needed for the range proof.
-		// cV = (h7)^v * g1^{rV}
-		ArithGroupElementExpression cVExpr = new NumberGroupElementLiteral(commitmentOfValue.getCommitmentElement());
-		ProductGroupElementExpression rhs = new ProductGroupElementExpression(new PowerGroupElementExpression(hExpr, vVar), new PowerGroupElementExpression(gPPExpr, rVVar));
-		GroupElementEqualityExpression problem3 = new GroupElementEqualityExpression(cVExpr, rhs);
-
-		return new GeneralizedSchnorrProtocolFactory(
-				new ArithComparisonExpression[]{problem1, problem2, problem3, problem4a, problem4b, problem5, problem6a, problem6b},
-				new Zp(pp.group.getG1().size())
-		);
+		return new GeneralizedSchnorrProtocolFactory(problems.stream().toArray(ArithComparisonExpression[]::new), zp);
 	}
 
 	static GeneralizedSchnorrProtocol getSpendDeductSchnorrProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dsid, Zp.ZpElement dsrnd, Zp.ZpElement dsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v, Zp.ZpElement openStar, ElgamalCipherText cDsidStar) {

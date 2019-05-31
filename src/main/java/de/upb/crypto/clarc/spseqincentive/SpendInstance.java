@@ -93,10 +93,15 @@ public class SpendInstance  extends CPreComProofInstance{
 	public static final int rho(BigInteger p) {
 		return (int) (Math.floor(p.bitLength() / (double) BASE.bitLength()) + 1);
 	}
+	public static final int VMAX_EXPONENT = 3; //vmax is BASE^{VMAX_EXPONENT} s.t. I can write vmax
 
 	public static List<Zp.ZpElement> getUaryRepresentationOf(Zp.ZpElement value) {
 		BigInteger p = value.getStructure().size();
 		int rho = rho(p);
+
+		if (VMAX_EXPONENT >= rho-1) {
+			throw new RuntimeException("vmax is too large");
+		}
 
 		List<Zp.ZpElement> result = new ArrayList<>();
 		BigInteger remainder = value.getInteger();
