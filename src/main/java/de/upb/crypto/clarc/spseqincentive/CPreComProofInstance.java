@@ -26,6 +26,7 @@ public abstract class CPreComProofInstance {
     IncentiveProviderPublicKey pk;
     IncentiveUserKeyPair usrKeypair;
     SigmaProtocol protocol;
+    IncentiveUser.CPreComProofValues cPreComProofValues;
 
     public CPreComProofInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveUserKeyPair keyPair, IncentiveUser.CPreComProofValues cPreComProofValues) {
         this.eskusr = cPreComProofValues.eskusr;
@@ -38,6 +39,7 @@ public abstract class CPreComProofInstance {
         this.pp = pp;
         this.pk = pk;
         this.usrKeypair = keyPair;
+        this.cPreComProofValues = cPreComProofValues;
     }
 
 

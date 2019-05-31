@@ -12,6 +12,12 @@ import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static de.upb.crypto.clarc.spseqincentive.SpendInstance.getUaryRepresentationOf;
+import static de.upb.crypto.clarc.spseqincentive.SpendInstance.rho;
+
 /**
  * Represents the user of the incentive system,
  * <p>
@@ -137,6 +143,35 @@ public class IncentiveUser {
 	public SpendPhase1Instance initSpendPhase1(IncentiveProviderPublicKey pk, Zp.ZpElement k, IncentiveToken token) {
 
 		return new SpendPhase1Instance(pp, pk, keyPair, k, token, new CPreComProofValues(pk));
+	}
+
+
+	public SpendInstance initSpendPhase2(IncentiveProviderPublicKey pk, CPreComProofValues cPreComProofValues, IncentiveToken token, Zp.ZpElement gamma, Zp.ZpElement eskusr, Zp.ZpElement eskisr){
+		Group groupG1 = pp.group.getG1();
+		Zp zp = new Zp(groupG1.size());
+		int rho = rho(zp.size());
+
+
+		// linking values c0, c1 using the old esk, old dsrndb, and gamma given by the issuer in phase 1
+		Zp.ZpElement c0 = keyPair.userSecretKey.usk.mul(gamma).add(token.dsrnd0);
+		Zp.ZpElement c1 = token.esk.mul(gamma).add(token.dsrnd1);
+
+		//new esk^*
+		Zp.ZpElement eskStar = eskusr.add(eskisr);
+		List<Zp.ZpElement> esk_i_star = getUaryRepresentationOf(eskStar);
+
+		//Encrypt esk_i_star
+		List<Zp.ZpElement> r_i = new ArrayList<>();
+		List<GroupElement> w_raised_r_i = new ArrayList<>();
+		List<GroupElement> w_raised_r_i_esk_times_bla = new ArrayList<>();
+		for (int i=0; i<rho;i++) {
+			Zp.ZpElement r = zp.getUniformlyRandomElement();
+			r_i.add(r);
+			w_raised_r_i.add(pp.w.pow(r));
+			w_raised_r_i_esk_times_bla.add(pp.w.pow(r.mul(token.esk).add(esk_i_star.get(i))));
+		}
+ 		// TODO: give him all the above to use it in the sigma protocol
+		return new SpendInstance
 	}
 
 	private ElgamalCipherText elgamalCommit(GroupElement message, Zp.ZpElement randomness) {

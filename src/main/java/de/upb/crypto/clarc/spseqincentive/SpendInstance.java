@@ -41,9 +41,7 @@ import java.util.stream.Stream;
  *  3. {@link #spend(PSSignature)} (PSSignature)}
  * After {@link #spend(PSSignature)} was run, the prover should have obtained an updated spseqSignature for a new double-spend id.
  */
-public class SpendInstance {
-	IncentiveSystemPublicParameters pp;
-	IncentiveProviderPublicKey pk;
+public class SpendInstance  extends CPreComProofInstance{
 	Zp.ZpElement k;
 	Zp.ZpElement dsid;
 	GroupElement upk;
@@ -51,9 +49,6 @@ public class SpendInstance {
 	IncentiveToken token;
 
 	// 1st move
-	Zp.ZpElement eskUsrShare;
-	Zp.ZpElement eskIsrShare;
-	Zp.ZpElement openStar;
 	ElgamalCipherText cUsrStar;
 
 	// 2nd move
@@ -75,14 +70,19 @@ public class SpendInstance {
 	ElgamalCipherText ctrace;
 
 
-	public SpendInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveUserKeyPair keyPair, IncentiveUser.CPreComProofValues cPreComProofValues) {
+	public SpendInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveUserKeyPair keyPair, Zp.ZpElement k, IncentiveToken token, IncentiveUser.CPreComProofValues cPreComProofValues) {
+		super(pp, pk, keyPair, cPreComProofValues);
 		this.pp = pp;
 		this.pk = pk;
 		this.k = k;
+
+		this.token = token;
+
+		// ich weiß nicht ob du das Folgende brauchst, upk und usk könnten im keypair stehen. dsid habtte ich bis jetzt noch nicht so benutzt
+		// meistens habe ich es einfach dann berechet wenn es soweit war pp.w.pow(token.esk)
 		this.dsid = dsid;
 		this.upk = upk;
 		this.usk = usk;
-		this.token = token;
 		this.dsidUsrStar = dsidUsrStar;
 		this.openStar = openStar;
 		this.cUsrStar = cUsrStar;
@@ -133,29 +133,7 @@ public class SpendInstance {
 	 */
 	public void initProtocol(Zp.ZpElement dsidIsrStar, Zp.ZpElement gamma) {
 
-		Group g1 = pp.group.getG1();
-		Zp zp = new Zp(g1.size());
-		int rho = rho(zp.size());
 
-
-		// linking values c0, c1
-		this.c0 = usk.mul(gamma).add(token.dsrnd0);
-		this.c1 = token.esk.mul(gamma).add(token.dsrnd1);
-
-		//new esk^*
-		Zp.ZpElement eskStar = eskUsrShare.add(eskIsrShare);
-		List<Zp.ZpElement> esk_i_star = getUaryRepresentationOf(eskStar);
-
-		//Encrypt esk_i_star
-		List<Zp.ZpElement> r_i = new ArrayList<>();
-		List<GroupElement> w_raised_r_i = new ArrayList<>();
-		List<GroupElement> w_raised_r_i_esk_times_bla = new ArrayList<>();
-		for (int i=0; i<rho;i++) {
-			Zp.ZpElement r = zp.getUniformlyRandomElement();
-			r_i.add(r);
-			w_raised_r_i.add(pp.w.pow(r));
-			w_raised_r_i_esk_times_bla.add(pp.w.pow(r.mul(esk).add(esk_i_star.get(i))));
-		}
 
 		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentTokenValue, usk, dsid, token.dsrnd, dsidStar, dsrndStar, r, rC, rPrime, token.value, openStar, cDsidStar);
 
@@ -174,7 +152,7 @@ public class SpendInstance {
 		// commitment C using randomness rC
 		MessageBlock msg = new MessageBlock();
 		Stream.of(usk, dsidStar, dsrndStar, token.value.sub(k)).map(RingElementPlainText::new).collect(Collectors.toCollection(() -> msg));
-		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), pk.getGroup1ElementsYi(), g1);
+		PedersenPublicParameters pedersenPP = new PedersenPublicParameters(pk.getGroup1ElementG(), pk.getGroup1ElementsYi(), groupG1);
 
 		PedersenCommitmentScheme pedersen = new PedersenCommitmentScheme(pedersenPP);
 		PedersenCommitmentPair commitmentPair = pedersen.commit(msg);
@@ -184,8 +162,8 @@ public class SpendInstance {
 
 
 		// encryption ctrace of dsidInGroup*
-		ElgamalPublicKey encKey = new ElgamalPublicKey(g1, pp.w, upk);
-		ElgamalEncryption elgamal = new ElgamalEncryption(g1);
+		ElgamalPublicKey encKey = new ElgamalPublicKey(groupG1, pp.w, upk);
+		ElgamalEncryption elgamal = new ElgamalEncryption(groupG1);
 		Zp.ZpElement r = zp.getUniformlyRandomElement();
 		this.ctrace = (ElgamalCipherText) elgamal.encrypt(new ElgamalPlainText(dsidInGroupStar), encKey, r.getInteger());
 
@@ -205,7 +183,7 @@ public class SpendInstance {
 		PedersenPublicParameters pedersenPP2 = new PedersenPublicParameters(
 				pp.g1,
 				new GroupElement[]{pp.h7},
-				g1
+				groupG1
 		);
 		PedersenCommitmentScheme pedersen2 = new PedersenCommitmentScheme(pedersenPP2);
 		PedersenCommitmentPair commitmentTokenValue = pedersen2.commit(new RingElementPlainText(token.value));

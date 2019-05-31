@@ -5,7 +5,6 @@ import de.upb.crypto.clarc.protocols.parameters.Announcement;
 import de.upb.crypto.clarc.protocols.parameters.Challenge;
 import de.upb.crypto.clarc.protocols.parameters.Response;
 import de.upb.crypto.clarc.utils.Stopwatch;
-import de.upb.crypto.craco.common.MessageBlock;
 import de.upb.crypto.craco.sig.ps.PSSignature;
 import de.upb.crypto.craco.sig.sps.eq.*;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
@@ -107,12 +106,12 @@ public class IncentiveSystemTest {
 
 
     @Test
-    public void testSpendDeductPhase1() {
+    public void testSpendDeduct() {
         TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, providerPublicKey);
         GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
         IncentiveToken userToken = output.token;
 
-        boolean b = spendDeductPhase1(zp, user, provider, providerPublicKey, userToken, POINTS_SPENT);
+        boolean b = spendDeductPhase(zp, user, provider, providerPublicKey, userToken, POINTS_SPENT);
 
 
         // the balance after earn should be POINTS_CREDITED
@@ -120,7 +119,7 @@ public class IncentiveSystemTest {
 
     }
 
-    boolean spendDeductPhase1(Zp zp, IncentiveUser user, IncentiveProvider provider, IncentiveProviderPublicKey pk, IncentiveToken userToken, Integer pointsToSpend) {
+    boolean spendDeductPhase(Zp zp, IncentiveUser user, IncentiveProvider provider, IncentiveProviderPublicKey pk, IncentiveToken userToken, Integer pointsToSpend) {
         // assumption: exchange common input before-hand
         Zp.ZpElement k = zp.valueOf(pointsToSpend);
         Zp.ZpElement vMinusK = k.sub(userToken.value);
@@ -145,7 +144,15 @@ public class IncentiveSystemTest {
         PSSignature psSignature = deductPhase1nstance.endDeductPhase1(responses);
 
         boolean b = spendPhase1Instance.endPhase1(psSignature);
-        return b;
+
+        // phase 2 starts
+
+        SpendInstance spendInstance = user.initSpendPhase2(pk, spendPhase1Instance.cPreComProofValues, userToken, deductPhase1nstance.gamma, spendPhase1Instance.eskusr, deductPhase1nstance.eskisr);
+
+
+
+
+        return false;
     }
 
     /*
