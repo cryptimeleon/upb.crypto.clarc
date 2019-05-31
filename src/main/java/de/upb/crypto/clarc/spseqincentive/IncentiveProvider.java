@@ -47,8 +47,10 @@ public class IncentiveProvider {
 		Zp.ZpElement eskIsr = zp.getUniformlyRandomElement();
 		// gamma <- Zp
 		Zp.ZpElement gamma = zp.getUniformlyRandomElement();
+		// tid <- Zp
+		Zp.ZpElement tid = zp.getUniformlyRandomElement();
 
-		return new DeductPhase1nstance(pp, keyPair, userPublicKey, eskIsr, gamma, k, dsid, cPre);
+		return new DeductPhase1nstance(pp, keyPair, userPublicKey, eskIsr, gamma, tid, k, dsid, cPre);
 	}
 /*
 	public DeductInstance initDeduct(Zp.ZpElement k, Zp.ZpElement dsid, ElgamalCipherText cUsrStar) {

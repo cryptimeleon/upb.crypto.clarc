@@ -31,6 +31,7 @@ public class DeductPhase1nstance {
 
 	Zp.ZpElement eskisr;
 	MessageBlock cPre;
+	Zp.ZpElement tid;
 	Zp.ZpElement k;
 	Zp.ZpElement gamma;
 	GroupElement dsid;
@@ -39,13 +40,14 @@ public class DeductPhase1nstance {
 	Announcement[] announcements;
 	Challenge ch;
 
-	public DeductPhase1nstance(IncentiveSystemPublicParameters pp, IncentiveProviderKeyPair providerKeyPair, IncentiveUserPublicKey userPublicKey, Zp.ZpElement eskisr, Zp.ZpElement gamma, Zp.ZpElement k, GroupElement dsid, MessageBlock cPre) {
+	public DeductPhase1nstance(IncentiveSystemPublicParameters pp, IncentiveProviderKeyPair providerKeyPair, IncentiveUserPublicKey userPublicKey, Zp.ZpElement eskisr, Zp.ZpElement gamma, Zp.ZpElement tid, Zp.ZpElement k, GroupElement dsid, MessageBlock cPre) {
 		this.pp = pp;
 		this.providerKeyPair = providerKeyPair;
 		this.userPublicKey = userPublicKey;
 		this.eskisr = eskisr;
 		this.cPre = cPre;
 		this.k = k;
+		this.tid = tid;
 		this.gamma = gamma;
 		this.dsid = dsid;
 	}
@@ -87,7 +89,6 @@ public class DeductPhase1nstance {
 
 		Group g1 = pp.group.getG1();
 		Zp zp = new Zp(g1.size());
-		Zp.ZpElement tid = zp.getUniformlyRandomElement();
 
 		ByteArrayAccumulator byteAccumulator = new ByteArrayAccumulator();
 		byteAccumulator.append(tid);
