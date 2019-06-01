@@ -49,7 +49,7 @@ public class SpendInstance  extends CPreComProofInstance{
 	}
 
 
-	public static final BigInteger BASE = BigInteger.valueOf(100);
+	public static final BigInteger BASE = BigInteger.valueOf(1000);
 	public static final int rho(BigInteger p) {
 		return (int) (Math.ceil(p.bitLength() / (double) BASE.bitLength()) + 2);
 	}
