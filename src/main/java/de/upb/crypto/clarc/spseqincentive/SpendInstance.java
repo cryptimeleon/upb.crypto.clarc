@@ -39,18 +39,19 @@ public class SpendInstance  extends CPreComProofInstance{
 	SigmaProtocol schnorrProtocol;
 	StuffThatsSentOverBeforeSpend stuff;
 
-	public SpendInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveUserKeyPair keyPair, Zp.ZpElement k, IncentiveToken token, IncentiveUser.CPreComProofValues cPreComProofValues) {
+	public SpendInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveUserKeyPair keyPair, Zp.ZpElement k, IncentiveToken token, IncentiveUser.CPreComProofValues cPreComProofValues, Zp.ZpElement eskisr) {
 		super(pp, pk, keyPair, cPreComProofValues);
 		this.pp = pp;
 		this.pk = pk;
 		this.k = k;
 		this.token = token;
+		this.eskisr = eskisr;
 	}
 
 
 	public static final BigInteger BASE = BigInteger.valueOf(20);
 	public static final int rho(BigInteger p) {
-		return (int) (Math.floor(p.bitLength() / (double) BASE.bitLength()) + 1);
+		return (int) (Math.ceil(p.bitLength() / (double) BASE.bitLength()) + 10);
 	}
 	public static final int VMAX_EXPONENT = 3; //vmax is BASE^{VMAX_EXPONENT} s.t. I can write vmax
 
@@ -78,10 +79,13 @@ public class SpendInstance  extends CPreComProofInstance{
 		Zp.ZpElement recreated = value.getStructure().getZeroElement();
 		for (Zp.ZpElement r : result) {
 			recreated = recreated.add(r.mul(recreated.getStructure().createZnElement(b)));
-			b = b.multiply(BigInteger.valueOf(2));
+			b = b.multiply(BASE);
 		}
 		if (!recreated.equals(value))
 			throw new RuntimeException("Bit decomposition doesn't work");
+
+		while (result.size() < rho)
+			result.add(value.getStructure().getZeroElement());
 
 		return result;
 	}

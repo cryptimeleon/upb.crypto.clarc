@@ -149,8 +149,9 @@ public class IncentiveSystemTest {
 
         SpendInstance spendInstance = user.initSpendPhase2(pk, k, spendPhase1Instance.cPreComProofValues, userToken, deductPhase1nstance.gamma, spendPhase1Instance.eskisr);
         DeductInstance deductInstance = provider.initDeduct(k, spendInstance.getStuffSentOver(), spendInstance.token.spseqSignature);
+        //spendInstance.schnorrProtocol.isFulfilled(); //TODO fix.
 
-        Announcement[] announcements1 = spendInstance.generateAnnoucements();
+        Announcement[] announcements1 = spendInstance.generateSchnorrAnnoucements();
         deductInstance.initProtocol(announcements1);
         Challenge ch1 = deductInstance.chooseChallenge();
         Response[] responses1 = spendInstance.generateSchnorrResponses(ch1);

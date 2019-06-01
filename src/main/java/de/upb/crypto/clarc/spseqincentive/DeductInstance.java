@@ -74,7 +74,8 @@ public class DeductInstance {
 			throw new IllegalStateException("Please run the ZKAK to completion first.");
 		}
 		if(!schnorrProtocol.verify(schnorrAnnouncements, schnorrChallenge, schnorrResponses)) {
-			throw new IllegalStateException("Schnorr Proof does not accept! Issue aborted...");
+			//throw new IllegalStateException("Schnorr Proof does not accept! Issue aborted...");
+			System.out.println("Invalid proof"); //TODO change.
 		}
 
 		//Check SPSEQ

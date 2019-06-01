@@ -363,10 +363,10 @@ public class ZKAKProvider {
 		List<GroupElementEqualityExpression> problems = new ArrayList<>();
 
 		// c0 = usk * gamma + dsrnd0
-		problems.add(equalExpr(oneInZp.pow(c0), powExpr(oneInZp.pow(gamma), uskVar)));
+		problems.add(equalExpr(oneInZp.pow(c0), prodExpr(powExpr(oneInZp.pow(gamma), uskVar), powExpr(oneInZp, dsrnd0Var))));
 
 		// c1 = esk * gamma + dsrnd1
-		problems.add(equalExpr(oneInZp.pow(c1), powExpr(oneInZp.pow(gamma), eskVar)));
+		problems.add(equalExpr(oneInZp.pow(c1), prodExpr(powExpr(oneInZp.pow(gamma), eskVar), powExpr(oneInZp, dsrnd1Var))));
 
 		//dsid = w^esk
 		problems.add(equalExpr(dsid, powExpr(pp.w, eskVar)));

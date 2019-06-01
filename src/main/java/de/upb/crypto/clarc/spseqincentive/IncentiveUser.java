@@ -147,7 +147,7 @@ public class IncentiveUser {
 
 
 	public SpendInstance initSpendPhase2(IncentiveProviderPublicKey pk, Zp.ZpElement k, CPreComProofValues cPreComProofValues, IncentiveToken token, Zp.ZpElement gamma, Zp.ZpElement eskisr){
-		SpendInstance instance = new SpendInstance(pp, pk, keyPair, k, token, cPreComProofValues);
+		SpendInstance instance = new SpendInstance(pp, pk, keyPair, k, token, cPreComProofValues, eskisr);
 		instance.initProtocol(gamma, eskisr);
 		return instance;
 	}
