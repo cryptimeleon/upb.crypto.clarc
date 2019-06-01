@@ -149,7 +149,7 @@ public class IncentiveSystemTest {
 
         SpendInstance spendInstance = user.initSpendPhase2(pk, k, spendPhase1Instance.cPreComProofValues, userToken, deductPhase1nstance.gamma, spendPhase1Instance.eskisr);
         DeductInstance deductInstance = provider.initDeduct(k, spendInstance.getStuffSentOver(), spendInstance.token.spseqSignature);
-        //spendInstance.schnorrProtocol.isFulfilled(); //TODO fix.
+        //spendInstance.schnorrProtocol.isFulfilled();//TODO fix.
 
         Announcement[] announcements1 = spendInstance.generateSchnorrAnnoucements();
         deductInstance.initProtocol(announcements1);
@@ -294,6 +294,24 @@ public class IncentiveSystemTest {
 
     TokenDoubleSpendIdPair issueJoin(IncentiveUser user, IncentiveUserPublicKey userPK, IncentiveProvider provider, IncentiveProviderPublicKey pk) {
         // assumption: exchange common input before-hand
+        ProverSecretKeyProtocolInstance proverSecretKeyProtocolInstance = provider.initProverSecretKey();
+
+        VerifierSecretKeyProtocolInstance verifierSecretKeyProtocolInstance = user.initVerifierSecretKey(pk);
+
+        proverSecretKeyProtocolInstance.initProtocol();
+        boolean b = proverSecretKeyProtocolInstance.protocol.isFulfilled();
+
+        Announcement[] announcementsSkProt = proverSecretKeyProtocolInstance.generateAnnoucements();
+
+        verifierSecretKeyProtocolInstance.initProtocol(announcementsSkProt);
+        Challenge chSkProt = verifierSecretKeyProtocolInstance.chooseChallenge();
+
+        Response[] responsesSkProt = proverSecretKeyProtocolInstance.computeResponses(chSkProt);
+
+        boolean b1 = verifierSecretKeyProtocolInstance.endProt(responsesSkProt);
+
+        //----
+
         JoinInstance joinInstance = user.initJoin(pk);
 
         IssueInstance issueInstance = provider.initIssue(userPK, joinInstance.cPre);

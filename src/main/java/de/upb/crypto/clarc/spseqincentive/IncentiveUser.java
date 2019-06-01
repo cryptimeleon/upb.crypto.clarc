@@ -94,12 +94,16 @@ public class IncentiveUser {
 	 *      the {@link JoinInstance} holding the state of the user during Issue/Receive
 	 */
 	public JoinInstance initJoin(IncentiveProviderPublicKey pk) {
-
 		//PedersenCommitmentScheme pedersenCommitmentScheme = new PedersenCommitmentScheme(new PedersenPublicParameters(pp.g1,pk.h1to6,groupG1));
 		//pedersenCommitmentScheme.commit()
 
-
 		return new JoinInstance(pp, pk, keyPair, new CPreComProofValues(pk));
+	}
+
+
+	public VerifierSecretKeyProtocolInstance initVerifierSecretKey(IncentiveProviderPublicKey providerPublicKey) {
+
+		return new VerifierSecretKeyProtocolInstance(pp, providerPublicKey, keyPair.userPublicKey);
 	}
 
 	/**

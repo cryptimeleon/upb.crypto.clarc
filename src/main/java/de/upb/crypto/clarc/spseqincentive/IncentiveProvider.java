@@ -22,6 +22,13 @@ public class IncentiveProvider {
 		this.keyPair = providerSetup.generateProviderKeys(pp);
 	}
 
+	public ProverSecretKeyProtocolInstance initProverSecretKey() {
+
+
+
+		return new ProverSecretKeyProtocolInstance(pp, keyPair);
+	}
+
 	// in the protocol the issuer first proofs knowledge of its secret key, here we first let the user send the commitment
 	public IssueInstance initIssue(IncentiveUserPublicKey userPublicKey, MessageBlock cPre) {
 		Group g1 = pp.group.getG1();

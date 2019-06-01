@@ -32,6 +32,59 @@ import java.util.List;
 
 public class ZKAKProvider {
 
+
+	private static GeneralizedSchnorrProtocolFactory getSecretKeyProtocolFactory(IncentiveSystemPublicParameters pp, Zp zp, IncentiveProviderPublicKey pk) {
+
+		ZnVariable spseqSkX1Var = new ZnVariable("spseqSkX1");
+		ZnVariable spseqSkX2Var = new ZnVariable("spseqSkX2");
+		ZnVariable q1Var = new ZnVariable("q1");
+		ZnVariable q2Var = new ZnVariable("q2");
+		ZnVariable q3Var = new ZnVariable("q3");
+		ZnVariable q4Var = new ZnVariable("q4");
+		ZnVariable q5Var = new ZnVariable("q5");
+		ZnVariable q6Var = new ZnVariable("q6");
+
+
+
+
+		// problem 1: hi = g1^{qi}}
+		ArithGroupElementExpression h1Expr = new NumberGroupElementLiteral(pk.h1to6[0]);
+		ArithGroupElementExpression h2Expr = new NumberGroupElementLiteral(pk.h1to6[1]);
+		ArithGroupElementExpression h3Expr = new NumberGroupElementLiteral(pk.h1to6[2]);
+		ArithGroupElementExpression h4Expr = new NumberGroupElementLiteral(pk.h1to6[3]);
+		ArithGroupElementExpression h5Expr = new NumberGroupElementLiteral(pk.h1to6[4]);
+		ArithGroupElementExpression h6Expr = new NumberGroupElementLiteral(pk.h1to6[5]);
+
+
+		NumberGroupElementLiteral g1Expr = new NumberGroupElementLiteral(pp.g1);
+		PowerGroupElementExpression g1q1Expr = new PowerGroupElementExpression(g1Expr, q1Var);
+		PowerGroupElementExpression g1q2Expr = new PowerGroupElementExpression(g1Expr, q2Var);
+		PowerGroupElementExpression g1q3Expr = new PowerGroupElementExpression(g1Expr, q3Var);
+		PowerGroupElementExpression g1q4Expr = new PowerGroupElementExpression(g1Expr, q4Var);
+		PowerGroupElementExpression g1q5Expr = new PowerGroupElementExpression(g1Expr, q5Var);
+		PowerGroupElementExpression g1q6Expr = new PowerGroupElementExpression(g1Expr, q6Var);
+
+		ArithGroupElementExpression hiExpr = new ProductGroupElementExpression(h1Expr, h2Expr,h3Expr, h4Expr, h5Expr, h6Expr);
+		ArithGroupElementExpression g1qiExpr = new ProductGroupElementExpression(g1q1Expr, g1q2Expr, g1q3Expr, g1q4Expr, g1q5Expr, g1q6Expr);
+		GroupElementEqualityExpression problem1 = new GroupElementEqualityExpression(hiExpr, (g1qiExpr));
+
+		// problem 2: spseq: Xi = g2^xi
+		NumberGroupElementLiteral X1Expr = new NumberGroupElementLiteral(pk.spseqVerificationKey.getGroup2ElementsHatXi()[0]);
+		NumberGroupElementLiteral X2Expr = new NumberGroupElementLiteral(pk.spseqVerificationKey.getGroup2ElementsHatXi()[1]);
+
+		ArithGroupElementExpression g2HatPExpr = new NumberGroupElementLiteral(pk.spseqPublicParameters.getGroup2ElementHatP());
+		PowerGroupElementExpression g2HatPX1Expr = new PowerGroupElementExpression(g2HatPExpr, spseqSkX1Var);
+		PowerGroupElementExpression g2HatPX2Expr = new PowerGroupElementExpression(g2HatPExpr, spseqSkX2Var);
+
+		ArithGroupElementExpression XiExpr = new ProductGroupElementExpression(X1Expr, X2Expr);
+		ArithGroupElementExpression g2HatPXiExpr = new ProductGroupElementExpression(g2HatPX1Expr, g2HatPX2Expr);
+
+		GroupElementEqualityExpression problem2 = new GroupElementEqualityExpression(XiExpr, (g2HatPXiExpr));
+
+
+		return new GeneralizedSchnorrProtocolFactory(new GroupElementEqualityExpression[]{problem1, problem2}, zp);
+	}
+
 	/* Defines the factory for the ZKAK ran in the Issue/Receive protocol */
 	private static GeneralizedSchnorrProtocolFactory getIssueJoinProtocolFactory(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey pk, MessageBlock cPre, GroupElement bCom) {
 
@@ -166,7 +219,6 @@ public class ZKAKProvider {
 		return new GeneralizedSchnorrProtocolFactory(new GroupElementEqualityExpression[]{problem1, problem1b, problem3, problem4}, zp);
 	}
 
-
 	/* Returns the prover protocol of the ZKAK ran in Issue/Receive */
 	static SigmaProtocol getIssueReceiveProverProtocol(IncentiveSystemPublicParameters pp, Zp zp, CPreComProofInstance joinInstance) {
 
@@ -185,6 +237,23 @@ public class ZKAKProvider {
 
 
 		return getIssueJoinProtocolFactory(pp, zp, joinInstance.usrKeypair.userPublicKey, joinInstance.pk, joinInstance.cPre, joinInstance.bCom).createProverGeneralizedSchnorrProtocol(witnessMapping);
+	}
+
+
+	/* Returns the prover protocol of the ZKAK ran in Issue/Receive */
+	static SigmaProtocol getSecretKeyProverProtocol(IncentiveSystemPublicParameters pp, Zp zp, ProverSecretKeyProtocolInstance protocolInstance) {
+
+		HashMap<String, Zp.ZpElement> witnessMapping = new HashMap<>();
+		witnessMapping.put("spseqSkX1", protocolInstance.providerKeyPair.providerSecretKey.spseqSigningKey.getExponentsXi()[0]);
+		witnessMapping.put("spseqSkX2", protocolInstance.providerKeyPair.providerSecretKey.spseqSigningKey.getExponentsXi()[1]);
+		witnessMapping.put("q1", protocolInstance.providerKeyPair.providerSecretKey.q[0]);
+		witnessMapping.put("q2", protocolInstance.providerKeyPair.providerSecretKey.q[1]);
+		witnessMapping.put("q3", protocolInstance.providerKeyPair.providerSecretKey.q[2]);
+		witnessMapping.put("q4", protocolInstance.providerKeyPair.providerSecretKey.q[3]);
+		witnessMapping.put("q5", protocolInstance.providerKeyPair.providerSecretKey.q[4]);
+		witnessMapping.put("q6", protocolInstance.providerKeyPair.providerSecretKey.q[5]);
+
+		return getSecretKeyProtocolFactory(pp, zp, protocolInstance.providerKeyPair.providerPublicKey).createProverGeneralizedSchnorrProtocol(witnessMapping);
 	}
 
 
@@ -214,6 +283,10 @@ public class ZKAKProvider {
 
 	static SigmaProtocol getIssueJoinVerifierProtocol(IncentiveSystemPublicParameters pp, Zp zp, IncentiveUserPublicKey userPublicKey, IncentiveProviderPublicKey providerPublicKey, MessageBlock cPre, GroupElement bCom) {
 		return getIssueJoinProtocolFactory(pp, zp, userPublicKey, providerPublicKey, cPre, bCom).createVerifierGeneralizedSchnorrProtocol();
+	}
+
+		static SigmaProtocol getSecretKeyVerifierProtocol(IncentiveSystemPublicParameters pp, Zp zp, IncentiveProviderPublicKey providerPublicKey) {
+		return getSecretKeyProtocolFactory(pp, zp, providerPublicKey).createVerifierGeneralizedSchnorrProtocol();
 	}
 
 	private static GeneralizedSchnorrProtocolFactory getPSVerifyProtocolFactory(IncentiveSystemPublicParameters pp, SPSEQSignature spseqSignature, IncentiveProviderPublicKey pk) {
