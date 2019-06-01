@@ -49,9 +49,9 @@ public class SpendInstance  extends CPreComProofInstance{
 	}
 
 
-	public static final BigInteger BASE = BigInteger.valueOf(20);
+	public static final BigInteger BASE = BigInteger.valueOf(100);
 	public static final int rho(BigInteger p) {
-		return (int) (Math.ceil(p.bitLength() / (double) BASE.bitLength()) + 10);
+		return (int) (Math.ceil(p.bitLength() / (double) BASE.bitLength()) + 2);
 	}
 	public static final int VMAX_EXPONENT = 3; //vmax is BASE^{VMAX_EXPONENT} s.t. I can write vmax
 
@@ -75,14 +75,14 @@ public class SpendInstance  extends CPreComProofInstance{
 		if (result.size() > rho)
 			throw new RuntimeException("rho too small");
 
-		BigInteger b = BigInteger.ONE;
+		/*BigInteger b = BigInteger.ONE;
 		Zp.ZpElement recreated = value.getStructure().getZeroElement();
 		for (Zp.ZpElement r : result) {
 			recreated = recreated.add(r.mul(recreated.getStructure().createZnElement(b)));
 			b = b.multiply(BASE);
 		}
 		if (!recreated.equals(value))
-			throw new RuntimeException("Bit decomposition doesn't work");
+			throw new RuntimeException("Bit decomposition doesn't work");*/
 
 		while (result.size() < rho)
 			result.add(value.getStructure().getZeroElement());
@@ -130,10 +130,12 @@ public class SpendInstance  extends CPreComProofInstance{
 		List<Zp.ZpElement> v_i_star_blinder = new ArrayList<>();
 		List<GroupElement> blindedSigmaViStar = new ArrayList<>();
 		List<GroupElement> hViStar = new ArrayList<>();
-		for (int i=0;i<rho;i++) {
+		if (token.value.getInteger().intValue() > Math.pow(SpendInstance.BASE.intValue(), SpendInstance.VMAX_EXPONENT))
+			throw new RuntimeException("over the vmax limit");
+		for (int i=0;i<SpendInstance.VMAX_EXPONENT;i++) {
 			Zp.ZpElement psRnd = zp.getUniformlyRandomUnit();
 			v_i_star_blinder.add(zp.getUniformlyRandomElement());
-			int digit = v_i_star.get(i).getInteger().intValueExact();
+			int digit = v_i_star.get(i).getInteger().intValue();
 			blindedSigmaViStar.add(pk.digitsig_sigma_on_i.get(digit).pow(psRnd).op(pp.w.pow(v_i_star_blinder.get(i))));
 			hViStar.add(pk.digitsig_h_on_i.get(digit).pow(psRnd));
 		}
@@ -145,7 +147,7 @@ public class SpendInstance  extends CPreComProofInstance{
 		for (int i=0;i<rho;i++) {
 			Zp.ZpElement psRnd = zp.getUniformlyRandomUnit();
 			esk_i_star_blinder.add(zp.getUniformlyRandomElement());
-			int digit = esk_i_star.get(i).getInteger().intValueExact();
+			int digit = esk_i_star.get(i).getInteger().intValue();
 			blindedSigmaEskiStar.add(pk.digitsig_sigma_on_i.get(digit).pow(psRnd).op(pp.w.pow(esk_i_star_blinder.get(i))));
 			hEskiStar.add(pk.digitsig_h_on_i.get(digit).pow(psRnd));
 		}
