@@ -61,7 +61,7 @@ public class IncentiveProviderSetup {
 
 		List<GroupElement> digitsig_sigma_on_i = new ArrayList<>();
 		List<GroupElement> digitsig_h_on_i = new ArrayList<>();
-		for (int i=0;i<SpendInstance.BASE.intValueExact();i++) {
+		for (int i=0;i<SpendInstance.BASE.intValue();i++) {
 			GroupElement h = pp.group.getG1().getUniformlyRandomNonNeutral();
 			digitsig_h_on_i.add(h);
 			digitsig_sigma_on_i.add(h.pow(digitsig_x.add(digitsig_y.mul(zp.valueOf(i)))));

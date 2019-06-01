@@ -36,7 +36,7 @@ public class IncentiveSystemTest {
     protected long timerStart = 0;
     long timerStarUser = 0;
     long timerStartProvider = 0;
-    private int maxIterations = 100;
+    private int maxIterations = 50;
 
     @Before
     public void setup() {
@@ -110,6 +110,7 @@ public class IncentiveSystemTest {
         TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, providerPublicKey);
         GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
         IncentiveToken userToken = output.token;
+        userToken = creditEarn(zp, user, provider, providerPublicKey, userToken, POINTS_CREDITED);
 
         boolean b = spendDeductPhase(zp, user, provider, providerPublicKey, userToken, POINTS_SPENT);
 
@@ -371,7 +372,7 @@ public class IncentiveSystemTest {
         System.out.println("Issue: " + ((double) issueAcc) / maxIterations / 1E9);
         System.out.println();
     }
-/*
+
 	@Test
 	public void evalCreditEarn() {
 		if(maxIterations == 0) return;
@@ -382,37 +383,37 @@ public class IncentiveSystemTest {
 		long creditAcc = 0;
 
 		for (int i = 0; i < maxIterations; i++) {
-			TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, pk);
-			GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
-			IncentiveToken userToken = output.token;
-			Zp.ZpElement k = zp.valueOf(POINTS_CREDITED);
+            TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, providerPublicKey);
+            GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
+            IncentiveToken userToken = output.token;
+            Zp.ZpElement k = zp.valueOf(POINTS_CREDITED);
 
-			earnTimer.start();
-			EarnInstance earnInstance = user.initEarn(pk, k, userToken);
-			Announcement[] announcements = earnInstance.generateAnnoucements();
-			earnTimer.stop();
+            earnTimer.start();
+            EarnInstance earnInstance = user.initEarn(providerPublicKey, k, userToken);
+            //Announcement[] announcements = earnInstance.generateAnnoucements();
+            earnTimer.stop();
 
-			creditTimer.start();
-			CreditInstance creditInstance = provider.initCredit(k, earnInstance.randToken, announcements);
-			Challenge challenge = creditInstance.chooseChallenge();
-			creditTimer.stop();
+            creditTimer.start();
+            CreditInstance creditInstance = provider.initCredit(k, earnInstance.cPrime, earnInstance.spseqSignature, null);
+            //Challenge challenge = creditInstance.chooseChallenge();
+            creditTimer.stop();
 
-			earnTimer.start();
-			Response[] responses = earnInstance.generateResponses(challenge);
-			earnTimer.stop();
+            earnTimer.start();
+            //Response[] responses = earnInstance.generateResponses(challenge);
+            earnTimer.stop();
 
-			creditTimer.start();
-			PSSignature blindedSig = creditInstance.credit(responses);
-			creditTimer.stop();
+            creditTimer.start();
+            SPSEQSignature blindedSig = creditInstance.credit(null);
+            creditTimer.stop();
 
-			earnTimer.start();
-			IncentiveToken earn = earnInstance.earn(blindedSig);
-			earnTimer.stop();
+            earnTimer.start();
+            IncentiveToken earn = earnInstance.earn(blindedSig);
+            earnTimer.stop();
 
-			earnAcc += earnTimer.timeElapsed();
-			earnTimer.reset();
-			creditAcc += creditTimer.timeElapsed();
-			creditTimer.reset();
+            earnAcc += earnTimer.timeElapsed();
+            earnTimer.reset();
+            creditAcc += creditTimer.timeElapsed();
+            creditTimer.reset();
 		}
 		System.out.println("AVG timing for protocol Credit/Earn over " + maxIterations + " runs:");
 		System.out.println("Earn: " + ((double) earnAcc) / maxIterations / 1E9);
@@ -430,46 +431,69 @@ public class IncentiveSystemTest {
 		long deductAcc = 0;
 
 		for (int i = 0; i < maxIterations; i++) {
-			TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, pk);
+			TokenDoubleSpendIdPair output = issueJoin(user, userPK, provider, providerPublicKey);
 			GroupElement userDoubleSpendID = output.doubleSpendIDinGroup;
 			IncentiveToken userToken = output.token;
-			IncentiveToken updatedToken = creditEarn(zp, user, provider, pk, userToken, POINTS_CREDITED);
+			userToken = creditEarn(zp, user, provider, providerPublicKey, userToken, POINTS_CREDITED);
 
-			Zp.ZpElement k1 = zp.valueOf(POINTS_SPENT);
+            // assumption: exchange common input before-hand
+            Zp.ZpElement k = zp.valueOf(POINTS_SPENT);
+            Zp.ZpElement vMinusK = (Zp.ZpElement) userToken.value.sub(k);
 
-			spendTimer.start();
-			SpendPhase1Instance spendInstance = user.initSpendPhase1(pk, k1, output.token.dsid, updatedToken);
-			spendTimer.stop();
+            spendTimer.start();
+            SpendPhase1Instance spendPhase1Instance = user.initSpendPhase1(providerPublicKey, vMinusK, userToken);
+            spendTimer.stop();
 
-			deductTimer.start();
-			DeductInstance deductInstance = provider.initDeduct(k1, output.token.dsid, spendInstance.cUsrStar);
-			deductTimer.stop();
+            deductTimer.start();
+            DeductPhase1nstance deductPhase1nstance = provider.initDeductPhase1(userPK, vMinusK, pp.w.pow(userToken.esk), spendPhase1Instance.cPre);
+            deductTimer.stop();
+            spendPhase1Instance.initProtocol(deductPhase1nstance.eskisr, deductPhase1nstance.gamma, deductPhase1nstance.tid);
 
-			spendTimer.start();
-			spendInstance.initProtocol(deductInstance.dsidIsrStar, deductInstance.gamma);
-			SigmaProtocol rangeProtocol = spendInstance.rangeProtocol;
-			Announcement[] schnorrAnnouncements = spendInstance.generateSchnorrAnnoucements();
-			ZeroToUPowLRangeProofPublicParameters rangePP = (ZeroToUPowLRangeProofPublicParameters) rangeProtocol.getPublicParameters();
-			Announcement[] rangeAnnouncements = rangeProtocol.generateAnnouncements();
-			spendTimer.stop();
+            spendTimer.start();
+            Announcement[] announcements = spendPhase1Instance.generateAnnoucements();
+            spendTimer.stop();
 
-			deductTimer.start();
-			deductInstance.initProtocol(spendInstance.commitment, spendInstance.commitmentOnValue, spendInstance.c, spendInstance.ctrace, spendInstance.randToken, schnorrAnnouncements, rangePP, rangeAnnouncements);
-			deductInstance.chooseChallenge();
-			deductTimer.stop();
+            deductTimer.start();
+            deductPhase1nstance.initProtocol(spendPhase1Instance.cPre, spendPhase1Instance.bCom, announcements);
+            Challenge ch = deductPhase1nstance.chooseChallenge();
+            deductTimer.stop();
 
-			spendTimer.start();
-			Response[] schnorrResponses = spendInstance.generateSchnorrResponses(deductInstance.schnorrChallenge);
-			Response[] rangeResponses = spendInstance.generateRangeResponses(deductInstance.rangeChallenge);
-			spendTimer.stop();
+            spendTimer.start();
+            Response[] responses = spendPhase1Instance.computeResponses(ch);
+            spendTimer.stop();
 
-			deductTimer.start();
-			DeductOutput deduct = deductInstance.deduct(schnorrResponses, rangeResponses);
-			deductTimer.stop();
+            deductTimer.start();
+            PSSignature psSignature = deductPhase1nstance.endDeductPhase1(responses);
+            deductTimer.stop();
 
-			deductTimer.start();
-			TokenDoubleSpendIdPair spend = spendInstance.spend(deduct.issuedSignature);
-			deductTimer.stop();
+            spendTimer.start();
+            boolean b = spendPhase1Instance.endPhase1(psSignature);
+            spendTimer.stop();
+
+            // phase 2 starts
+
+            spendTimer.start();
+            SpendInstance spendInstance = user.initSpendPhase2(providerPublicKey, k, spendPhase1Instance.cPreComProofValues, userToken, deductPhase1nstance.gamma, spendPhase1Instance.eskisr);
+            spendTimer.stop();
+
+
+            spendTimer.start();
+            Announcement[] announcements1 = spendInstance.generateSchnorrAnnoucements();
+            spendTimer.stop();
+
+            deductTimer.start();
+            DeductInstance deductInstance = provider.initDeduct(k, spendInstance.getStuffSentOver(), spendInstance.token.spseqSignature);
+            deductInstance.initProtocol(announcements1);
+            Challenge ch1 = deductInstance.chooseChallenge();
+            deductTimer.stop();
+
+            spendTimer.start();
+            Response[] responses1 = spendInstance.generateSchnorrResponses(ch1);
+            spendTimer.stop();
+
+            deductTimer.start();
+            DeductOutput out = deductInstance.deduct(responses1);
+            deductTimer.stop();
 
 			spendAcc += spendTimer.timeElapsed();
 			spendTimer.reset();
@@ -480,5 +504,5 @@ public class IncentiveSystemTest {
 		System.out.println("Spend: " + ((double) spendAcc) / maxIterations /  1E9);
 		System.out.println("Deduct: " + ((double) deductAcc) / maxIterations / 1E9);
 		System.out.println();
-	}*/
+	}
 }
