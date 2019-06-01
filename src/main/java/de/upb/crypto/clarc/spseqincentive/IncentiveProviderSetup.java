@@ -10,7 +10,9 @@ import de.upb.crypto.math.interfaces.structures.Group;
 import de.upb.crypto.math.interfaces.structures.GroupElement;
 import de.upb.crypto.math.structures.zn.Zp;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class IncentiveProviderSetup {
 
@@ -49,6 +51,22 @@ public class IncentiveProviderSetup {
 		//PedersenCommitmentScheme pedersenCommitmentScheme = new PedersenCommitmentScheme(new PedersenPublicParameters(pp.g1,h1to6,pp.group.getG1()));
 
 
-		return new IncentiveProviderKeyPair(signatureKeyPair.getVerificationKey(), signatureKeyPair.getSigningKey(), spsSignatureKeyPair.getSigningKey(), spsSignatureKeyPair.getVerificationKey(), spseqPublicParameters,h1to6, q);
+		// signatures on base elements for range proofs. Pointcheval Sanders
+		GroupElement digitsig_g1 = pp.group.getG1().getUniformlyRandomElement();
+		GroupElement digitsig_g2 = pp.group.getG2().getUniformlyRandomElement();
+		Zp.ZpElement digitsig_x = zp.getUniformlyRandomElement();
+		Zp.ZpElement digitsig_y = zp.getUniformlyRandomElement();
+		GroupElement digitsig_public_x = digitsig_g2.pow(digitsig_x);
+		GroupElement digitsig_public_y = digitsig_g2.pow(digitsig_y);
+
+		List<GroupElement> digitsig_sigma_on_i = new ArrayList<>();
+		List<GroupElement> digitsig_h_on_i = new ArrayList<>();
+		for (int i=0;i<SpendInstance.BASE.intValueExact();i++) {
+			GroupElement h = pp.group.getG1().getUniformlyRandomNonNeutral();
+			digitsig_h_on_i.add(h);
+			digitsig_sigma_on_i.add(h.pow(digitsig_x.add(digitsig_y.mul(zp.valueOf(i)))));
+		}
+
+		return new IncentiveProviderKeyPair(signatureKeyPair.getVerificationKey(), signatureKeyPair.getSigningKey(), spsSignatureKeyPair.getSigningKey(), spsSignatureKeyPair.getVerificationKey(), spseqPublicParameters,h1to6, q, digitsig_public_x, digitsig_public_y, digitsig_sigma_on_i, digitsig_h_on_i, digitsig_g2);
 	}
 }

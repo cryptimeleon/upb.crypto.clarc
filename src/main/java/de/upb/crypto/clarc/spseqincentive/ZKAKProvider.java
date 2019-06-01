@@ -263,14 +263,14 @@ public class ZKAKProvider {
 	*/
 
 	static GeneralizedSchnorrProtocol getCreditEarnProverProtocol(IncentiveSystemPublicParameters pp, SPSEQSignature spseqSignatureR, IncentiveProviderPublicKey pk, Zp.ZpElement usk, IncentiveToken token, Zp.ZpElement s) {
-		HashMap<String, Zp.ZpElement> witnessMapping = new HashMap<>();
+		/*HashMap<String, Zp.ZpElement> witnessMapping = new HashMap<>();
 		witnessMapping.put("usk", usk);
 		witnessMapping.put("eskusr", token.esk);
 		witnessMapping.put("dsrnd0", token.dsrnd0);
 		witnessMapping.put("dsrnd1", token.dsrnd1);
 		witnessMapping.put("z", token.z);
 		witnessMapping.put("t", token.t);
-		witnessMapping.put("s", s);
+		witnessMapping.put("s", s);*/
 
 		return null;
 	}
@@ -294,7 +294,26 @@ public class ZKAKProvider {
 		return new GroupElementEqualityExpression(new NumberGroupElementLiteral(lhs), rhs);
 	}
 
-	private static GeneralizedSchnorrProtocolFactory getSpendDeductSchnoorProtocolFactory(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, Zp.ZpElement dsid, Zp.ZpElement c, PSExtendedVerificationKey pk, PSSignature blindedSig, PedersenCommitmentValue commitmentOfValue, ElgamalCipherText ctrace, Zp.ZpElement k, PedersenCommitmentValue commitment, ElgamalCipherText cDsidStar, Zp.ZpElement gamma, int rho) {
+	public static GroupElementEqualityExpression equalExpr(ArithGroupElementExpression lhs, ArithGroupElementExpression rhs) {
+		if (rhs instanceof PowerGroupElementExpression) {
+			rhs = prodExpr(rhs);
+		}
+		return new GroupElementEqualityExpression(lhs, rhs);
+	}
+
+	public static ArithGroupElementExpression pairExpr(BilinearMap map, ArithGroupElementExpression lhs, ArithGroupElementExpression rhs, ZnVariable x) {
+		return new PowerGroupElementExpression(new PairingGroupElementExpression(map, lhs, rhs), x);
+	}
+
+	public static ArithGroupElementExpression pairExpr(BilinearMap map, GroupElement lhs, GroupElement rhs, ZnVariable x) {
+		return new PowerGroupElementExpression(new PairingGroupElementExpression(map, new NumberGroupElementLiteral(lhs), new NumberGroupElementLiteral(rhs)), x);
+	}
+
+	public static ArithGroupElementExpression pairExpr(BilinearMap map, GroupElement lhs, GroupElement rhs) {
+		return new PairingGroupElementExpression(map, new NumberGroupElementLiteral(lhs), new NumberGroupElementLiteral(rhs));
+	}
+
+	private static GeneralizedSchnorrProtocolFactory getSpendDeductSchnoorProtocolFactory(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey providerPublicKey, Zp.ZpElement dsid, Zp.ZpElement c, PSExtendedVerificationKey pk, PSSignature blindedSig, PedersenCommitmentValue commitmentOfValue, ElgamalCipherText ctrace, Zp.ZpElement k, PedersenCommitmentValue commitment, ElgamalCipherText cDsidStar, Zp.ZpElement gamma, int rho, List<GroupElement> blindedSigmaViStar, List<GroupElement> hViStar) {
 		Zp zp = new Zp(pp.group.getG1().size());
 		RingAdditiveGroup additiveZp = zp.asAdditiveGroup();
 		RingAdditiveGroup.RingAdditiveGroupElement oneInZp = zp.getOneElement().toAdditiveGroupElement(); //generator of additive Zp
@@ -319,8 +338,10 @@ public class ZKAKProvider {
 		}
 
 		List<ZnVariable> v_iStarVar = new ArrayList<>(); //base decomposition of v* = v-k
+		List<ZnVariable> v_iStarBlindersVar = new ArrayList<>(); //values used to blind the signatures for digits of v_iStar with, i.e. sigma' = \sigma * w^v_iStarBLinder
 		for (int i=0; i<SpendInstance.VMAX_EXPONENT; i++) {
-			v_iStarVar.add(new ZnVariable("v_"+i));
+			v_iStarVar.add(new ZnVariable("v_"+i+"_star"));
+			v_iStarBlindersVar.add(new ZnVariable("v_"+i+"_star_blinder"));
 		}
 		ZnVariable eskusrStarVar = new ZnVariable("eskusrStar");
 		ZnVariable dsrnd0Var = new ZnVariable("dsrnd0");
@@ -346,22 +367,38 @@ public class ZKAKProvider {
 		problems.add(equalExpr(dsid, powExpr(pp.w, eskVar)));
 
 		//open C
-		problems.add(equalExpr(C0, prodExpr(
-			powExpr(h1, uskVar),
-			powExpr(h2, eskVar),
-			powExpr(h3, dsrnd0Var),
-			powExpr(h4, dsrnd1Var),
-			powExpr(h5, vVar),
-			powExpr(h6, zVar),
-			powExpr(h7, tVar)
+		problems.add(equalExpr(commitmentC0, prodExpr(
+			powExpr(providerPublicKey.h1to6[0], uskVar),
+			powExpr(providerPublicKey.h1to6[1], eskVar),
+			powExpr(providerPublicKey.h1to6[2], dsrnd0Var),
+			powExpr(providerPublicKey.h1to6[3], dsrnd1Var),
+			powExpr(providerPublicKey.h1to6[4], vVar),
+			powExpr(providerPublicKey.h1to6[5], zVar),
+			powExpr(pp.h7, tVar)
 		)));
 
 		// open Cpre
-		//    Cpre0
-		//TODO
+		//    open Cpre0blinded = Cpre0 * h6^Cpre0blinder
+		problems.add(
+				equalExpr(Cpre0blinded.mul(providerPublicKey.h1to6[4].pow(k).inv()), //account for -k term on rhs in paper
+						prodExpr(
+								powExpr(providerPublicKey.h1to6[0], uskVar),
+								powExpr(providerPublicKey.h1to6[1], eskusrStarVar),
+								powExpr(providerPublicKey.h1to6[2], dsrnd0StarVar),
+								powExpr(providerPublicKey.h1to6[3], dsrnd1StarVar),
+								powExpr(providerPublicKey.h1to6[4], vVar),
+								powExpr(providerPublicKey.h1to6[5], zStarVar),
+								powExpr(pp.h7, tStarVar),
+								powExpr(providerPublicKey.h1to6[5], Cpre0blinderVar)
+						)
+				)
+		);
 
-		//    Cpre1
-		problems.add(equalExpr(Cpre1, powExpr(pp.g1, uStarVar)));
+		//    Cpre0powU = Cpre0blinded^u * h6^Cpre0blinderPowU //now extractor has opening open(Cpre0)^u for Cpre0powU, but with h6^(Cpre0blinder*u-Cpre0blinderPowU)
+		problems.add(equalExpr(Cpre0powU, prodExpr(powExpr(Cpre0blinded, uStarVar), powExpr(providerPublicKey.h1to6[5], Cpre0blinderPowUStarVar))));
+
+		//    Cpre1powU
+		problems.add(equalExpr(Cpre1PowU, powExpr(pp.g1, uStarVar)));
 
 		// esk^* = eskusr* + eskisr*
 		problems.add(equalExpr(oneInZp.pow(eskIsr), prodExpr(
@@ -377,8 +414,17 @@ public class ZKAKProvider {
 		exprs.add(powExpr(oneInZp.inv(), vVar));
 		problems.add(equalExpr(zp.valueOf(k.getInteger()).neg().toAdditiveGroupElement(), prodExpr(exprs.stream().toArray(ArithGroupElementExpression[]::new))));
 
-		//    v_i* < base
-		//TODO
+		//    v_i* < base: check blinded signature: e(sigma_blind, g2) * e(h, public_x)^-1 = e(h, public_y)^m * e(w, g2)^unblinder
+		for (int i=0; i<SpendInstance.VMAX_EXPONENT;i++) {
+			problems.add(equalExpr(
+					prodExpr(
+							pairExpr(pp.group.getBilinearMap(), blindedSigmaViStar.get(i), providerPublicKey.digitsig_g2),
+							pairExpr(pp.group.getBilinearMap(), hViStar.get(i).inv(), providerPublicKey.digitsig_public_x)
+					), prodExpr(
+							pairExpr(pp.group.getBilinearMap(), hViStar.get(i), providerPublicKey.digitsig_public_y, v_iStarVar.get(i)),
+							pairExpr(pp.group.getBilinearMap(), pp.w, providerPublicKey.digitsig_g2, v_iStarBlindersVar.get(i))
+					)));
+		}
 
 		//ctrace
 		for (int i=0;i<rho;i++) {
@@ -394,7 +440,16 @@ public class ZKAKProvider {
 		problems.add(equalExpr(zp.getZeroElement().toAdditiveGroupElement(), prodExpr(exprs.stream().toArray(ArithGroupElementExpression[]::new))));
 
 		//esk_i* < base
-		//TODO
+		for (int i=0; i<rho;i++) {
+			problems.add(equalExpr(
+					prodExpr(
+							pairExpr(pp.group.getBilinearMap(), blindedSigmaEskiStar.get(i), providerPublicKey.digitsig_g2),
+							pairExpr(pp.group.getBilinearMap(), hEskiStar.get(i).inv(), providerPublicKey.digitsig_public_x)
+					), prodExpr(
+							pairExpr(pp.group.getBilinearMap(), hEskiStar.get(i), providerPublicKey.digitsig_public_y, esk_i_starVar.get(i)),
+							pairExpr(pp.group.getBilinearMap(), pp.w, providerPublicKey.digitsig_g2, esk_iStarBlindersVar.get(i))
+					)));
+		}
 
 		return new GeneralizedSchnorrProtocolFactory(problems.stream().toArray(ArithComparisonExpression[]::new), zp);
 	}
