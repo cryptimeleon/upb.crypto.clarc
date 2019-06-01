@@ -148,14 +148,15 @@ public class IncentiveSystemTest {
         // phase 2 starts
 
         SpendInstance spendInstance = user.initSpendPhase2(pk, k, spendPhase1Instance.cPreComProofValues, userToken, deductPhase1nstance.gamma, spendPhase1Instance.eskisr);
-        DeductInstance deductInstance = provider.initDeduct();
+        DeductInstance deductInstance = provider.initDeduct(k, spendInstance.getStuffSentOver(), spendInstance.token.spseqSignature);
 
         Announcement[] announcements1 = spendInstance.generateAnnoucements();
+        deductInstance.initProtocol(announcements1);
         Challenge ch1 = deductInstance.chooseChallenge();
         Response[] responses1 = spendInstance.generateSchnorrResponses(ch1);
         DeductOutput out = deductInstance.deduct(responses1);
 
-        return false;
+        return out.b;
     }
 
     /*

@@ -37,6 +37,7 @@ public class SpendInstance  extends CPreComProofInstance{
 	Zp.ZpElement k;
 	IncentiveToken token;
 	SigmaProtocol schnorrProtocol;
+	StuffThatsSentOverBeforeSpend stuff;
 
 	public SpendInstance(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey pk, IncentiveUserKeyPair keyPair, Zp.ZpElement k, IncentiveToken token, IncentiveUser.CPreComProofValues cPreComProofValues) {
 		super(pp, pk, keyPair, cPreComProofValues);
@@ -83,6 +84,10 @@ public class SpendInstance  extends CPreComProofInstance{
 			throw new RuntimeException("Bit decomposition doesn't work");
 
 		return result;
+	}
+
+	public StuffThatsSentOverBeforeSpend getStuffSentOver() {
+		return stuff;
 	}
 
 
@@ -151,6 +156,8 @@ public class SpendInstance  extends CPreComProofInstance{
 		Zp.ZpElement dsrnd1Star = this.dsrnd1; //weird, I know.
 		Zp.ZpElement zStar = this.z;
 		Zp.ZpElement tStar = this.t;
+
+		stuff = new StuffThatsSentOverBeforeSpend(dsid, w_raised_r_i, w_raised_r_i_esk_times_bla, k, gamma, rho, blindedSigmaViStar, hViStar, blindedSigmaEskiStar, hEskiStar, ((GroupElementPlainText) token.M.get(0)).get(), c0, c1, Cpre0blinded /*Cpre0 * h6^Cpre0blinderVar*/, Cpre0powU, Cpre1PowU, eskIsr);
 
 		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrProverProtocol(pp, pk, dsid, w_raised_r_i, w_raised_r_i_esk_times_bla, k, gamma, rho, blindedSigmaViStar, hViStar, blindedSigmaEskiStar, hEskiStar, ((GroupElementPlainText) token.M.get(0)).get(), c0, c1, Cpre0blinded /*Cpre0 * h6^Cpre0blinderVar*/, Cpre0powU, Cpre1PowU, eskIsr,
 				usrKeypair.userSecretKey.usk, token.value, token.z, zStar, token.t, tStar, uStar, token.esk, eskStar, esk_i_star, r_i, esk_i_star_blinder, v_i_star, v_i_star_blinder,  eskusr, token.dsrnd0, dsrnd0Star, token.dsrnd1, dsrnd1Star, Cpre0blinder);

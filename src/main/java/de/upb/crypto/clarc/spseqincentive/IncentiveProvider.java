@@ -53,12 +53,8 @@ public class IncentiveProvider {
 		return new DeductPhase1nstance(pp, keyPair, userPublicKey, eskIsr, gamma, tid, k, dsid, cPre);
 	}
 
-	public DeductInstance initDeduct(Zp.ZpElement k, ) {
-		Zp zp = new Zp(pp.group.getG1().size());
-
-		return new DeductInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, dsid, dsidIsrStar, gamma, cDsidStar);
-
+	public DeductInstance initDeduct(Zp.ZpElement k, StuffThatsSentOverBeforeSpend stuff, SPSEQSignature oldSig) {
+		return new DeductInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, stuff, oldSig);
 	}
-
 }
 
