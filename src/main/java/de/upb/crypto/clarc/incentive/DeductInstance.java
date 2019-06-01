@@ -91,12 +91,12 @@ public class DeductInstance {
 		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeVerifierProtocol(pp, new PedersenCommitmentValue(commitmentOnV.getCommitmentElement().op(pp.h.pow(k.neg()))));
 	}
 
-	public void chooseChallenge() {
+	public Challenge chooseChallenge() {
 		if(schnorrProtocol == null || rangeProtocol == null) {
 			throw new IllegalStateException("Please initialize the protocol first!");
 		}
 		this.schnorrChallenge = schnorrProtocol.chooseChallenge();
-		this.rangeChallenge = rangeProtocol.chooseChallenge();
+		return schnorrChallenge;
 	}
 
 	public DeductOutput deduct(Response[] schnorrResponses, Response[] rangeResponses) {

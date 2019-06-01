@@ -122,7 +122,7 @@ public class IncentiveSystemTest {
     boolean spendDeductPhase(Zp zp, IncentiveUser user, IncentiveProvider provider, IncentiveProviderPublicKey pk, IncentiveToken userToken, Integer pointsToSpend) {
         // assumption: exchange common input before-hand
         Zp.ZpElement k = zp.valueOf(pointsToSpend);
-        Zp.ZpElement vMinusK = k.sub(userToken.value);
+        Zp.ZpElement vMinusK = (Zp.ZpElement) userToken.value.sub(k);
 
         SpendPhase1Instance spendPhase1Instance = user.initSpendPhase1(pk, vMinusK, userToken);
 
@@ -131,7 +131,7 @@ public class IncentiveSystemTest {
         spendPhase1Instance.initProtocol(deductPhase1nstance.eskisr, deductPhase1nstance.gamma, deductPhase1nstance.tid);
 
 
-        boolean valid = spendPhase1Instance.protocol.isFulfilled();
+        //boolean valid = spendPhase1Instance.protocol.isFulfilled();
 
 
         Announcement[] announcements = spendPhase1Instance.generateAnnoucements();
@@ -147,10 +147,13 @@ public class IncentiveSystemTest {
 
         // phase 2 starts
 
-        SpendInstance spendInstance = user.initSpendPhase2(pk, spendPhase1Instance.cPreComProofValues, userToken, deductPhase1nstance.gamma, spendPhase1Instance.eskusr, deductPhase1nstance.eskisr);
+        SpendInstance spendInstance = user.initSpendPhase2(pk, k, spendPhase1Instance.cPreComProofValues, userToken, deductPhase1nstance.gamma, spendPhase1Instance.eskisr);
+        DeductInstance deductInstance = provider.initDeduct();
 
-
-
+        Announcement[] announcements1 = spendInstance.generateAnnoucements();
+        Challenge ch1 = deductInstance.chooseChallenge();
+        Response[] responses1 = spendInstance.generateSchnorrResponses(ch1);
+        DeductOutput out = deductInstance.deduct(responses1);
 
         return false;
     }

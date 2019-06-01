@@ -313,9 +313,8 @@ public class ZKAKProvider {
 		return new PairingGroupElementExpression(map, new NumberGroupElementLiteral(lhs), new NumberGroupElementLiteral(rhs));
 	}
 
-	private static GeneralizedSchnorrProtocolFactory getSpendDeductSchnoorProtocolFactory(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey providerPublicKey, Zp.ZpElement dsid, Zp.ZpElement c, PSExtendedVerificationKey pk, PSSignature blindedSig, PedersenCommitmentValue commitmentOfValue, ElgamalCipherText ctrace, Zp.ZpElement k, PedersenCommitmentValue commitment, ElgamalCipherText cDsidStar, Zp.ZpElement gamma, int rho, List<GroupElement> blindedSigmaViStar, List<GroupElement> hViStar) {
+	private static GeneralizedSchnorrProtocolFactory getSpendDeductSchnoorProtocolFactory(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey providerPublicKey, GroupElement dsid, List<GroupElement> ctraceRandomness, List<GroupElement> ctraceCiphertexts, Zp.ZpElement k, Zp.ZpElement gamma, int rho, List<GroupElement> blindedSigmaViStar, List<GroupElement> hViStar, List<GroupElement> blindedSigmaEskiStar, List<GroupElement> hEskiStar, GroupElement commitmentC0, Zp.ZpElement c0, Zp.ZpElement c1, GroupElement Cpre0blinded /*Cpre0 * h6^Cpre0blinderVar*/, GroupElement Cpre0powU, GroupElement Cpre1PowU, Zp.ZpElement eskIsr) {
 		Zp zp = new Zp(pp.group.getG1().size());
-		RingAdditiveGroup additiveZp = zp.asAdditiveGroup();
 		RingAdditiveGroup.RingAdditiveGroupElement oneInZp = zp.getOneElement().toAdditiveGroupElement(); //generator of additive Zp
 		List<RingAdditiveGroup.RingAdditiveGroupElement> base_to_the_i = new ArrayList<>();
 		for (int i=0;i<rho;i++)
@@ -331,10 +330,12 @@ public class ZKAKProvider {
 		ZnVariable eskVar = new ZnVariable("esk");
 		ZnVariable eskStarVar = new ZnVariable("eskStar");
 		List<ZnVariable> esk_i_starVar = new ArrayList<>();
+		List<ZnVariable> esk_iStarBlindersVar = new ArrayList<>();
 		List<ZnVariable> r_iVar = new ArrayList<>();
 		for (int i=0;i<rho;i++) {
 			esk_i_starVar.add(new ZnVariable("esk_" + i + "_star")); //base-decomp of esk*
-			esk_i_starVar.add(new ZnVariable("r_" + i));
+			r_iVar.add(new ZnVariable("r_" + i));
+			esk_iStarBlindersVar.add(new ZnVariable("esk_"+i+"_star_blinder"));
 		}
 
 		List<ZnVariable> v_iStarVar = new ArrayList<>(); //base decomposition of v* = v-k
@@ -348,6 +349,10 @@ public class ZKAKProvider {
 		ZnVariable dsrnd0StarVar = new ZnVariable("dsrnd0Star");
 		ZnVariable dsrnd1Var = new ZnVariable("dsrnd1");
 		ZnVariable dsrnd1StarVar = new ZnVariable("dsrnd1Star");
+
+		//For the double-exponent opening
+		ZnVariable Cpre0blinderVar = new ZnVariable("Cpre0blinder"); //Cpre0 * h6^Cpre0blinderVar
+		ZnVariable Cpre0blinderTimesUStarVar = new ZnVariable("Cpre0blinderTimesUStar"); //Cpre0blinderVar*uStarVar
 
 
 		//ZnVariable uskuVar = new ZnVariable("usku");
@@ -380,7 +385,7 @@ public class ZKAKProvider {
 		// open Cpre
 		//    open Cpre0blinded = Cpre0 * h6^Cpre0blinder
 		problems.add(
-				equalExpr(Cpre0blinded.mul(providerPublicKey.h1to6[4].pow(k).inv()), //account for -k term on rhs in paper
+				equalExpr(Cpre0blinded.op(providerPublicKey.h1to6[4].pow(k).inv()), //account for -k term on rhs in paper
 						prodExpr(
 								powExpr(providerPublicKey.h1to6[0], uskVar),
 								powExpr(providerPublicKey.h1to6[1], eskusrStarVar),
@@ -395,7 +400,7 @@ public class ZKAKProvider {
 		);
 
 		//    Cpre0powU = Cpre0blinded^u * h6^Cpre0blinderPowU //now extractor has opening open(Cpre0)^u for Cpre0powU, but with h6^(Cpre0blinder*u-Cpre0blinderPowU)
-		problems.add(equalExpr(Cpre0powU, prodExpr(powExpr(Cpre0blinded, uStarVar), powExpr(providerPublicKey.h1to6[5], Cpre0blinderPowUStarVar))));
+		problems.add(equalExpr(Cpre0powU, prodExpr(powExpr(Cpre0blinded, uStarVar), powExpr(providerPublicKey.h1to6[5], Cpre0blinderTimesUStarVar))));
 
 		//    Cpre1powU
 		problems.add(equalExpr(Cpre1PowU, powExpr(pp.g1, uStarVar)));
@@ -428,8 +433,8 @@ public class ZKAKProvider {
 
 		//ctrace
 		for (int i=0;i<rho;i++) {
-			problems.add(equalExpr(ctrace.get(i).getC1(), powExpr(pp.w, r_iVar.get(i))));
-			problems.add(equalExpr(ctrace.get(i).getC2(), powExpr(ctrace.get(i).getC1(), eskVar), powExpr(pp.w, esk_i_starVar.get(i))));
+			problems.add(equalExpr(ctraceRandomness.get(i), powExpr(pp.w, r_iVar.get(i))));
+			problems.add(equalExpr(ctraceCiphertexts.get(i), prodExpr(powExpr(ctraceRandomness.get(i), eskVar), powExpr(pp.w, esk_i_starVar.get(i)))));
 		}
 
 		//esk* base decomp
@@ -454,51 +459,52 @@ public class ZKAKProvider {
 		return new GeneralizedSchnorrProtocolFactory(problems.stream().toArray(ArithComparisonExpression[]::new), zp);
 	}
 
-	static GeneralizedSchnorrProtocol getSpendDeductSchnorrProverProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentPair commitmentOfValue, Zp.ZpElement usk, Zp.ZpElement dsid, Zp.ZpElement dsrnd, Zp.ZpElement dsidStar, Zp.ZpElement dsrndStar, Zp.ZpElement r, Zp.ZpElement rC, Zp.ZpElement rPrime, Zp.ZpElement v, Zp.ZpElement openStar, ElgamalCipherText cDsidStar) {
-
-		GeneralizedSchnorrProtocolFactory schnorrFac = getSpendDeductSchnoorProtocolFactory(pp, dsid, c, pk, blindedSig, commitmentOfValue.getCommitmentValue(), ctrace, k, commitment, cDsidStar, gamma);
+	static GeneralizedSchnorrProtocol getSpendDeductSchnorrProverProtocol(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey providerPublicKey, GroupElement dsid, List<GroupElement> ctraceRandomness, List<GroupElement> ctraceCiphertexts, Zp.ZpElement k, Zp.ZpElement gamma, int rho, List<GroupElement> blindedSigmaViStar, List<GroupElement> hViStar, List<GroupElement> blindedSigmaEskiStar, List<GroupElement> hEskiStar, GroupElement commitmentC0, Zp.ZpElement c0, Zp.ZpElement c1, GroupElement Cpre0blinded /*Cpre0 * h6^Cpre0blinderVar*/, GroupElement Cpre0powU, GroupElement Cpre1PowU, Zp.ZpElement eskIsr,
+																		  Zp.ZpElement usk, Zp.ZpElement v, Zp.ZpElement z, Zp.ZpElement zStar, Zp.ZpElement t, Zp.ZpElement tStar, Zp.ZpElement uStar, Zp.ZpElement esk, Zp.ZpElement eskStar, List<Zp.ZpElement> esk_i_star, List<Zp.ZpElement> r_i, List<Zp.ZpElement> esk_i_star_blinder, List<Zp.ZpElement> v_iStar, List<Zp.ZpElement> v_i_star_blinder, Zp.ZpElement eskUsrStar, Zp.ZpElement dsrnd0, Zp.ZpElement dsrnd0Star, Zp.ZpElement dsrnd1, Zp.ZpElement dsrnd1Star, Zp.ZpElement Cpre0blinder) {
+		GeneralizedSchnorrProtocolFactory schnorrFac = getSpendDeductSchnoorProtocolFactory(pp, providerPublicKey, dsid, ctraceRandomness, ctraceCiphertexts, k, gamma, rho, blindedSigmaViStar, hViStar, blindedSigmaEskiStar, hEskiStar, commitmentC0, c0, c1, Cpre0blinded /*Cpre0 * h6^Cpre0blinderVar*/, Cpre0powU, Cpre1PowU, eskIsr);
 
 		HashMap<String, Zp.ZpElement> witnessMapping = new HashMap<>();
 		witnessMapping.put("usk", usk);
-		witnessMapping.put("dsid", dsid);
-		witnessMapping.put("dsrnd", dsrnd);
 		witnessMapping.put("v", v);
-		witnessMapping.put("dsidStar", dsidStar);
-		witnessMapping.put("dsrndStar", dsrndStar);
-		witnessMapping.put("rPrime", rPrime);
-		witnessMapping.put("r", r);
-		witnessMapping.put("rC", rC);
-		witnessMapping.put("openStar", openStar);
-		witnessMapping.put("rV", commitmentOfValue.getOpenValue().getRandomValue());
+		witnessMapping.put("z", z);
+		witnessMapping.put("zStar", zStar);
+		witnessMapping.put("t", t);
+		witnessMapping.put("tStar", tStar);
+		witnessMapping.put("uStar", uStar);
+		witnessMapping.put("esk", esk);
+		witnessMapping.put("eskStar", eskStar);
+		//List<Zp.ZpElement> esk_i_star_blinder = new ArrayList<>(); //values used to blind the signatures for digits of esk_iStar with, i.e. sigma' = \sigma * w^v_iStarBLinder
+		for (int i=0;i<rho;i++) {
+			witnessMapping.put("esk_" + i + "_star", esk_i_star.get(i)); //base-decomp of esk*
+			witnessMapping.put("r_" + i, r_i.get(i));
+			witnessMapping.put("esk_"+i+"_star_blinder", esk_i_star_blinder.get(i));
+		}
+
+		//List<Zp.ZpElement> v_iStar = SpendInstance.getUaryRepresentationOf(v.sub(k)); //base decomposition of v* = v-k
+		//List<Zp.ZpElement> v_iStarBlindersVar = new ArrayList<>(); //values used to blind the signatures for digits of v_iStar with, i.e. sigma' = \sigma * w^v_iStarBLinder
+		for (int i=0; i<SpendInstance.VMAX_EXPONENT; i++) {
+			witnessMapping.put("v_"+i+"_star", v_iStar.get(i));
+			witnessMapping.put("v_"+i+"_star_blinder", v_i_star_blinder.get(i));
+		}
+		witnessMapping.put("eskusrStar", eskUsrStar);
+		witnessMapping.put("dsrnd0", dsrnd0);
+		witnessMapping.put("dsrnd0Star", dsrnd0Star);
+		witnessMapping.put("dsrnd1", dsrnd1);
+		witnessMapping.put("dsrnd1Star", dsrnd1Star);
+
+		//For the double-exponent opening
+		witnessMapping.put("Cpre0blinder", Cpre0blinder); //Cpre0 * h6^Cpre0blinderVar
+		witnessMapping.put("Cpre0blinderTimesUStar", Cpre0blinder.mul(uStar)); //Cpre0blinderVar*uStarVar
 
 		return schnorrFac.createProverGeneralizedSchnorrProtocol(witnessMapping);
 	}
 
-	static GeneralizedSchnorrProtocol getSpendDeductSchnorrVerifierProtocol(IncentiveSystemPublicParameters pp, Zp.ZpElement c, Zp.ZpElement gamma, PSExtendedVerificationKey pk, PSSignature blindedSig, Zp.ZpElement k, ElgamalCipherText ctrace, PedersenCommitmentValue commitment, PedersenCommitmentValue commitmentOnV, Zp.ZpElement dsid, ElgamalCipherText cDsidStar) {
-		GeneralizedSchnorrProtocolFactory schnorrFac = getSpendDeductSchnoorProtocolFactory(pp, dsid, c, pk, blindedSig, commitmentOnV, ctrace, k, commitment, cDsidStar, gamma);
+	static GeneralizedSchnorrProtocol getSpendDeductSchnorrVerifierProtocol(IncentiveSystemPublicParameters pp, IncentiveProviderPublicKey providerPublicKey, GroupElement dsid, List<GroupElement> ctraceRandomness, List<GroupElement> ctraceCiphertexts, Zp.ZpElement k, Zp.ZpElement gamma, int rho, List<GroupElement> blindedSigmaViStar, List<GroupElement> hViStar, List<GroupElement> blindedSigmaEskiStar, List<GroupElement> hEskiStar, GroupElement commitmentC0, Zp.ZpElement c0, Zp.ZpElement c1, GroupElement Cpre0blinded /*Cpre0 * h6^Cpre0blinderVar*/, GroupElement Cpre0powU, GroupElement Cpre1PowU, Zp.ZpElement eskIsr) {
+		GeneralizedSchnorrProtocolFactory schnorrFac = getSpendDeductSchnoorProtocolFactory(pp, providerPublicKey, dsid, ctraceRandomness, ctraceCiphertexts, k, gamma, rho, blindedSigmaViStar, hViStar, blindedSigmaEskiStar, hEskiStar, commitmentC0, c0, c1, Cpre0blinded /*Cpre0 * h6^Cpre0blinderVar*/, Cpre0powU, Cpre1PowU, eskIsr);
 		return schnorrFac.createVerifierGeneralizedSchnorrProtocol();
 	}
 
-
-	/* Note that prover and verifier need to ne generated from the **same** factory. Therefore, this factory should only be set up by either the prover or the
-	 * verifier, and the parameters generated in that way should be sent to the other party. In this application, the user/prover generates the protocol and sends
-     * the parameters to the verifier
-	 */
-	static ZeroToUPowLRangeProofProtocolFactory getSpendDeductRangeProofProtocolFactory(IncentiveSystemPublicParameters pp, PedersenCommitmentValue commitment) {
-		ZeroToUPowLRangeProofPublicParameters rangePP = pp.getSpendDeductRangePP(commitment.getCommitmentElement());
-		return new ZeroToUPowLRangeProofProtocolFactory(rangePP, "Spend/Deduct");
-	}
-
-	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeProverProtocol(IncentiveSystemPublicParameters pp, PedersenCommitmentValue commitment, Zp.ZpElement commitmentRandomness, Zp.ZpElement committedValue) {
-		ZeroToUPowLRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, commitment);
-
-		return rangeFac.getProverProtocol(commitmentRandomness, committedValue);
-	}
-	static ZeroToUPowLRangeProofProtocol getSpendDeductRangeVerifierProtocol(IncentiveSystemPublicParameters pp, PedersenCommitmentValue commitment) {
-		ZeroToUPowLRangeProofProtocolFactory rangeFac = getSpendDeductRangeProofProtocolFactory(pp, commitment);
-		return rangeFac.getVerifierProtocol();
-	}
-
+	
 	/** Problem for expression c1 = baseExpr^expVar */
 	private static GroupElementEqualityExpression getElgamalProblemA(GroupElement c1, ArithGroupElementExpression baseExpr, ZnVariable expVar) {
 		return new GroupElementEqualityExpression(

@@ -87,19 +87,16 @@ public class DeductInstance {
 
 		// set up protocol
 		this.schnorrProtocol = ZKAKProvider.getSpendDeductSchnorrVerifierProtocol(pp, c, gamma, pk, randToken, k, ctrace, commitment, commitmentOnV, dsid, cDsidStar);
-		// here we need a commitment on v-k
-		this.rangeProtocol = ZKAKProvider.getSpendDeductRangeVerifierProtocol(pp, new PedersenCommitmentValue(commitmentOnV.getCommitmentElement().op(pp.h7.pow(k.neg()))));
 	}
 
-	public void chooseChallenge() {
+	public Challenge chooseChallenge() {
 		if(schnorrProtocol == null || rangeProtocol == null) {
 			throw new IllegalStateException("Please initialize the protocol first!");
 		}
 		this.schnorrChallenge = schnorrProtocol.chooseChallenge();
-		this.rangeChallenge = rangeProtocol.chooseChallenge();
 	}
 
-	public DeductOutput deduct(Response[] schnorrResponses, Response[] rangeResponses) {
+	public DeductOutput deduct(Response[] schnorrResponses) {
 		if(schnorrProtocol == null || rangeProtocol == null) {
 			throw new IllegalStateException("Please initialize the protocol first!");
 		}

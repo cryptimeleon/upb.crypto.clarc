@@ -52,18 +52,13 @@ public class IncentiveProvider {
 
 		return new DeductPhase1nstance(pp, keyPair, userPublicKey, eskIsr, gamma, tid, k, dsid, cPre);
 	}
-/*
-	public DeductInstance initDeduct(Zp.ZpElement k, Zp.ZpElement dsid, ElgamalCipherText cUsrStar) {
+
+	public DeductInstance initDeduct(Zp.ZpElement k, ) {
 		Zp zp = new Zp(pp.group.getG1().size());
-
-		Zp.ZpElement dsidIsrStar = zp.getUniformlyRandomElement();
-		Zp.ZpElement gamma = zp.getUniformlyRandomElement();
-
-		ElgamalCipherText cDsidStar = new ElgamalCipherText(cUsrStar.getC1(), cUsrStar.getC2().op(pp.g1.pow(dsidIsrStar)));
 
 		return new DeductInstance(pp, keyPair.providerPublicKey, keyPair.providerSecretKey, k, dsid, dsidIsrStar, gamma, cDsidStar);
 
-	}*/
+	}
 
 }
 
