@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.com/upbcuk/upb.crypto.clarc.svg?branch=master)](https://travis-ci.com/upbcuk/upb.crypto.clarc)
 # upb.crypto.clarc
+**WARNING: this implementation is meant to be used for prototyping and as a research tool *only*. It has not been sufficiently vetted to use in production.**
+
 Cryptographic Library for Anonymous Reputation and Credentials
 
 * acs: provides the actual implementation of CLARC (Cryptographic Library for Anonymous Reputation and Credentials). It contains the high-level actor classes which expose the functionality of the system in a consumer-friendly form.
