@@ -40,7 +40,11 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
 
     // For tests
-    testImplementation group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0' + (Boolean.valueOf(System.getProperty("disablesnapshot")) ? "" : "-SNAPSHOT"), classifier: 'tests'
+    testImplementation(group: 'de.upb.crypto.clarc', name: 'protocols', version: '1.0.0' + (Boolean.valueOf(System.getProperty("disablesnapshot")) ? "" : "-SNAPSHOT")) {
+        capabilities {
+            requireCapability("de.upb.crypto.clarc:protocols-tests")
+        }
+    }
     testImplementation 'org.easymock:easymock:3.5'
     // Use JUnit 5 test framework
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.2.0'
