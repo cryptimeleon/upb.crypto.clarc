@@ -10,7 +10,7 @@ def msgPrefix = rootProject.name + " settings: "
 
 // do specific snapshot dependency resolution for snapshot builds
 if (!Boolean.valueOf(System.getProperty("disablesnapshot"))) {
-    def compositeLibraries = ["upb.crypto.math", "upb.crypto.protocols"]
+    def compositeLibraries = ["upb.crypto.math", "upb.crypto.protocols", "upb.crypto.craco"]
     for (String lib : compositeLibraries) {
         def libPrefix = "dependency " + lib
         def libPath = file("../" + lib).getPath()
@@ -28,20 +28,26 @@ if (!Boolean.valueOf(System.getProperty("disablesnapshot"))) {
         def grgitThis = Grgit.open(dir: rootProject.projectDir)
         def branchThis = grgitThis.branch.current()
         if (hasProperty("useCurrentBranch")) {
-            println(msgPrefix + libPrefix + ": Parameter 'useCurrentBranch' is set. Using branch '" + grgitLib.branch.current().getName() + "'.")
+            println(msgPrefix + libPrefix + ": Parameter 'useCurrentBranch' is set. Using branch '"
+                    + grgitLib.branch.current().getName() + "'.")
         } else {
             if (file(libPath + "/.git/refs/heads/" + branchThis.getName()).exists()) {
                 if (grgitLib.branch.current().getName() == branchThis.getName()) {
-                    println(msgPrefix + libPrefix + ": Branch '" + branchThis.getName() + "' exists and is checked out already.")
+                    println(msgPrefix + libPrefix + ": Branch '" + branchThis.getName()
+                            + "' exists and is checked out already.")
                 } else {
-                    throw new GradleException(msgPrefix + libPrefix + ": Branch '" + branchThis.getName() + "' exists but is not checked out. "
+                    throw new GradleException(msgPrefix + libPrefix + ": Branch '"
+                            + branchThis.getName() + "' exists but is not checked out. "
                             + "Please check it out yourself before building.")
                 }
             } else {
-                println(msgPrefix + libPrefix + ": Branch '" + branchThis.getName() + "' does not exist locally.")
-                if (grgitLib.branch.list { mode = "REMOTE" }.collect { it.getName() }.contains("origin/" + branchThis.getName())) {
+                println(msgPrefix + libPrefix + ": Branch '" + branchThis.getName()
+                        + "' does not exist locally.")
+                if (grgitLib.branch.list { mode = "REMOTE" }.collect { it.getName() }
+                        .contains("origin/" + branchThis.getName())) {
                     if (hasProperty("checkoutIfCloned") && cloned) {
-                        println(msgPrefix + libPrefix + ": Branch '" + branchThis.getName() + "' exists but is not checked out. "
+                        println(msgPrefix + libPrefix + ": Branch '" + branchThis.getName()
+                                + "' exists but is not checked out. "
                                 + "'checkoutIfCloned' is set. Automatically checking it out.")
                         grgitLib.checkout {
                             branch = branchThis.getName()
@@ -49,11 +55,13 @@ if (!Boolean.valueOf(System.getProperty("disablesnapshot"))) {
                             createBranch = true
                         }
                     } else {
-                        throw new GradleException(msgPrefix + libPrefix + ": Branch '" + branchThis.getName()
-                                + "' exists remotely but not locally. Please check it out yourself before building.")
+                        throw new GradleException(msgPrefix + libPrefix + ": Branch '"
+                                + branchThis.getName() + "' exists remotely but not locally."
+                                + " Please check it out yourself before building.")
                     }
                 } else {
-                    println(msgPrefix + libPrefix + ": Branch '" + branchThis.getName() + "' does not exist remotely. Using master.")
+                    println(msgPrefix + libPrefix + ": Branch '" + branchThis.getName()
+                            + "' does not exist remotely. Using master.")
                     if (grgitLib.branch.current().getName() == "master") {
                         println(msgPrefix + libPrefix + ": Branch master is checked out already. Using it.")
                     } else {
@@ -66,7 +74,8 @@ if (!Boolean.valueOf(System.getProperty("disablesnapshot"))) {
                                 createBranch = true
                             }
                         } else {
-                            throw new GradleException(msgPrefix + libPrefix + ": Branch master exists but is not checked out. "
+                            throw new GradleException(msgPrefix + libPrefix
+                                    + ": Branch master exists but is not checked out. "
                                     + "Please check it out yourself before building.")
                         }
                     }
