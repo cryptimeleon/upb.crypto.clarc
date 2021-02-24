@@ -12,7 +12,7 @@ While the intended interface for applications consuming the library is CLARC, th
 
 ## Installation
 
-Clarc relies on old versions of the [Cryptimeleon Craco](https://github.com/cryptimeleon/craco) and [Cryptimeleon Math](https://github.com/cryptimeleon/math) as well as our [legacy protocols](https://github.com/cryptimeleon/legacy.upb.crypto.protocols) libraries.
+Clarc relies on old versions of the [Cryptimeleon Craco](https://github.com/cryptimeleon/craco) and [Cryptimeleon Math](https://github.com/cryptimeleon/math) as well as our [legacy protocols](https://github.com/cryptimeleon/upb.crypto.protocols) libraries.
 The required versions lie on the `fix-clarc-tests` branches on each of those github repositories.
 
 You will need to check out that branch, build them via `./gradlew build` and then install them locally via `./gradlew publishToMavenLocal`, such that Clarc can use them, in this order:
