@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.com/upbcuk/upb.crypto.clarc.svg?branch=master)](https://travis-ci.com/upbcuk/upb.crypto.clarc)
+# Legacy
+⚠️ This is upb.crypto legacy code, using outdated versions of our libraries. 
+
 # upb.crypto.clarc
 **WARNING: this implementation is meant to be used for prototyping and as a research tool *only*. It has not been sufficiently vetted to use in production.**
 
@@ -12,7 +14,7 @@ While the intended interface for applications consuming the library is CLARC, th
 
 ## Installation
 
-Clarc relies on old versions of the [Cryptimeleon Craco](https://github.com/cryptimeleon/craco) and [Cryptimeleon Math](https://github.com/cryptimeleon/math) as well as our [legacy protocols](https://github.com/cryptimeleon/upb.crypto.protocols) libraries.
+Clarc relies on old versions of the [Cryptimeleon Craco](https://github.com/cryptimeleon/craco) and [Cryptimeleon Math](https://github.com/cryptimeleon/math) library as well as our [legacy protocols](https://github.com/cryptimeleon/upb.crypto.protocols) library.
 The required versions lie on the `fix-clarc-tests` branches on each of those github repositories.
 
 You will need to check out that branch, build them via `./gradlew build` and then install them locally via `./gradlew publishToMavenLocal`, such that Clarc can use them, in this order:
