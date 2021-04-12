@@ -7,7 +7,7 @@
 Cryptographic Library for Anonymous Reputation and Credentials
 
 * acs: provides the actual implementation of CLARC (Cryptographic Library for Anonymous Reputation and Credentials). It contains the high-level actor classes which expose the functionality of the system in a consumer-friendly form.
-This module the API against which an user of the library should implement.
+This module is the API against which an user of the library should implement.
 
 This upper layer in the architecture utilize lower-level libraries.
 While the intended interface for applications consuming the library is CLARC, the other libraries can still be used in order to either, achieve greater control about the internals of the credential system, or also to reuse parts for completely credential system unrelated use-cases. For example, the commitment or signature schemes can be reused in a different context with this architecture.
