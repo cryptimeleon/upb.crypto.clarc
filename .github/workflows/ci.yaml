@@ -1,0 +1,59 @@
+name: Java CI
+
+on:
+  push:
+  schedule:
+    - cron: '0 0 * * 1' # weekly on monday
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout math
+        uses: actions/checkout@v2
+        with:
+          repository: cryptimeleon/math
+          ref: fix-clarc-tests
+          path: math
+
+      - name: Checkout craco
+        uses: actions/checkout@v2
+        with:
+          repository: cryptimeleon/craco
+          ref: fix-clarc-tests
+          path: craco
+
+      - name: Checkout protocols
+        uses: actions/checkout@v2
+        with:
+          repository: cryptimeleon/upb.crypto.protocols
+          ref: fix-clarc-tests
+          path: protocols
+
+      - name: Checkout clarc
+        uses: action/checkout@v2
+        with:
+          path: clarc
+
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - name: Install math
+        run: |
+          ./math/gradlew build
+          ./math/gradlew publishToMavenLocal
+
+      - name: Install craco
+        run: |
+          ./craco/gradlew build
+          ./craco/gradlew publishToMavenLocal
+
+      - name: Install protocols
+        run: |
+          ./protocols/gradlew build
+          ./protocols/gradlew publishToMavenLocal
+
+      - name: Build Clarc
+        run: ./clarc/gradlew build
