@@ -1,5 +1,6 @@
 package de.upb.crypto.clarc.utils;
 
+import de.upb.crypto.clarc.acs.protocols.impl.clarc.provecred.Witness;
 import de.upb.crypto.craco.interfaces.PublicParameters;
 import de.upb.crypto.craco.interfaces.policy.Policy;
 import de.upb.crypto.craco.interfaces.policy.PolicyFact;
@@ -50,6 +51,9 @@ public abstract class GenericStandaloneTest implements ArgumentsProvider {
 
         // add remaining classes
         for (Class<? extends StandaloneRepresentable> c : classes) {
+            // [r.heitjohann] Exclude Witness class without public constructor, idk whats going on with that
+            if (c.equals(Witness.class))
+                continue;
             if (!c.isInterface() && !Modifier.isAbstract(c.getModifiers())) {
                 toReturn.add(new StandaloneTestParams(c, null));
             }

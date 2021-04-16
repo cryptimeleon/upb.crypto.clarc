@@ -114,7 +114,6 @@ public class AttributeSerializationTest {
 
 
     @Test
-    @Disabled
     public void printSerializedSignatureScheme() {
         final JSONConverter converter = new JSONConverter();
 

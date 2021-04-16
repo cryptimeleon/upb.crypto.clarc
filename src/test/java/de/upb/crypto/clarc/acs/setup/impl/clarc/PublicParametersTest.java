@@ -151,7 +151,6 @@ class PublicParametersTest {
 
 
     @Test
-    @Disabled
     void createSerializationTest() {
         final JSONConverter converter = new JSONConverter();
 
