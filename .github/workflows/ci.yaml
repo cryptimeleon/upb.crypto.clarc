@@ -42,18 +42,18 @@ jobs:
 
       - name: Install math
         run: |
-          ./math/gradlew build
-          ./math/gradlew publishToMavenLocal
+          ./math/gradlew --project-dir ./math build
+          ./math/gradlew --project-dir ./math publishToMavenLocal
 
       - name: Install craco
         run: |
-          ./craco/gradlew build
-          ./craco/gradlew publishToMavenLocal
+          ./craco/gradlew --project-dir ./craco build
+          ./craco/gradlew --project-dir ./craco publishToMavenLocal
 
       - name: Install protocols
         run: |
-          ./protocols/gradlew build
-          ./protocols/gradlew publishToMavenLocal
+          ./protocols/gradlew --project-dir ./protocols build
+          ./protocols/gradlew --project-dir ./protocols publishToMavenLocal
 
       - name: Build Clarc
-        run: ./clarc/gradlew build
+        run: ./clarc/gradlew --project-dir ./clarc build
