@@ -14,15 +14,12 @@ While the intended interface for applications consuming the library is CLARC, th
 
 ## Installation
 
-Clarc relies on old versions of the [Cryptimeleon Craco](https://github.com/cryptimeleon/craco) and [Cryptimeleon Math](https://github.com/cryptimeleon/math) library as well as our [legacy protocols](https://github.com/cryptimeleon/upb.crypto.protocols) library.
-The required versions lie on the `fix-clarc-tests` branches on each of those github repositories.
+Clarc relies on old versions of the [Cryptimeleon Craco](https://github.com/cryptimeleon/craco/tree/fix-clarc-tests) and [Cryptimeleon Math](https://github.com/cryptimeleon/math/tree/fix-clarc-tests) library as well as our [legacy protocols](https://github.com/cryptimeleon/upb.crypto.protocols/tree/fix-clarc-tests) and [mclwrap](https://github.com/cryptimeleon/mclwrap/commit/6ce111a0821f32e184c75eb43230592689967255) library.
+Their jars have been included in the `dependency-bin` dir, so no further action is needed.
 
-You will need to check out that branch, build them via `./gradlew build` and then install them locally via `./gradlew publishToMavenLocal`, such that Clarc can use them, in this order:
-1. Math
-2. Craco
-3. Protocols
+If you want to run clarc with the fast mcl pairing, run the `install_mcl.sh` script (on Linux or Windows) or manually install [libmcljava v1.03](https://github.com/herumi/mcl/releases/tag/v1.03). If you do not do this, you will be stuck with the much slower java-based pairing.
 
-Then you can do the same for Clarc itself and include it as a dependency.
+We have committed a Dockerfile that sets up mcl and holds the clarc project in `/app`. You can run the (performance) tests via `./gradlew test`.
 
 ## Further reading
 Please see the workshop paper ["Fully-Featured Anonymous Credentials with Reputation System"](https://dl.acm.org/citation.cfm?id=3234517) (ARES 2018) and [the project group document](https://cs.uni-paderborn.de/fileadmin/informatik/fg/cuk/Lehre/Veranstaltungen/WS2016/ReACt/ReACt_documentation.pdf).
